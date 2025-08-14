@@ -1,24 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Film, Tv, Settings } from 'lucide-react';
+import { Search, Film, Settings } from 'lucide-react';
 import { useConfig } from '../contexts/ConfigContext';
 
 const Home = () => {
   const { config } = useConfig();
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Simple loading state for now
-    setLoading(false);
-  }, []);
+  const connectionStatus = useMemo(() => {
+    const hasPlex = config.plex.token.length > 0;
+    const hasSonarr = config.sonarr.apiKey.length > 0;
+    const hasRadarr = config.radarr.apiKey.length > 0;
+    
+    if (hasPlex || hasSonarr || hasRadarr) {
+      return { connected: true, count: [hasPlex, hasSonarr, hasRadarr].filter(Boolean).length };
+    }
+    return { connected: false, count: 0 };
+  }, [config]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  const handleRefresh = () => {
+    setLoading(true);
+    // Simulate refresh
+    setTimeout(() => setLoading(false), 1000);
+  };
 
   return (
     <div className="min-h-full bg-gray-900 p-6">
@@ -30,7 +34,16 @@ const Home = () => {
 
       {/* Connection Status */}
       <div className="mb-8 p-6 bg-gray-800 rounded-lg border border-gray-700">
-        <h2 className="text-xl font-semibold text-white mb-4">Service Status</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-white">Service Status</h2>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="text-sm text-blue-400 hover:text-blue-300 disabled:text-gray-500 transition-colors"
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
             <div className={`w-3 h-3 rounded-full ${config.plex.token ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -59,7 +72,7 @@ const Home = () => {
       {/* Quick Actions */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link
             to="/search"
             className="p-6 bg-gray-800 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors group"
@@ -76,15 +89,6 @@ const Home = () => {
             <Film className="w-8 h-8 text-green-500 mb-3 group-hover:scale-110 transition-transform" />
             <h3 className="font-semibold text-white mb-2">Library</h3>
             <p className="text-gray-400 text-sm">Browse your media collection</p>
-          </Link>
-
-          <Link
-            to="/library"
-            className="p-6 bg-gray-800 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors group"
-          >
-            <Tv className="w-8 h-8 text-purple-500 mb-3 group-hover:scale-110 transition-transform" />
-            <h3 className="font-semibold text-white mb-2">TV Shows</h3>
-            <p className="text-gray-400 text-sm">Explore your TV series</p>
           </Link>
 
           <Link

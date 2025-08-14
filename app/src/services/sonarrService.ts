@@ -1,188 +1,187 @@
-import axios from 'axios';
-import type { SonarrSeries, SonarrImage } from '../types';
+export interface SonarrSeries {
+  id: number;
+  title: string;
+  titleSlug: string;
+  tvdbId: number;
+  year: number;
+  overview: string;
+  status: string;
+  monitored: boolean;
+  qualityProfileId: number;
+  rootFolderPath: string;
+  seasonFolder: boolean;
+  searchForMissingEpisodes: boolean;
+  tags: string[];
+  seasons: SonarrSeason[];
+  added: string;
+  images: SonarrImage[];
+}
+
+export interface SonarrSeason {
+  seasonNumber: number;
+  monitored: boolean;
+  statistics: {
+    episodeCount: number;
+    episodeFileCount: number;
+    totalEpisodeCount: number;
+    sizeOnDisk: number;
+    percentOfEpisodes: number;
+  };
+}
+
+export interface SonarrImage {
+  coverType: string;
+  url: string;
+  remoteUrl: string;
+}
+
+export interface SonarrQueueItem {
+  id: number;
+  seriesId: number;
+  series: {
+    title: string;
+    year: number;
+  };
+  episode: {
+    title: string;
+    seasonNumber: number;
+    episodeNumber: number;
+  };
+  status: string;
+  size: number;
+  sizeleft: number;
+  estimatedCompletionTime: string;
+  downloadId: string;
+}
+
+export interface SonarrConfig {
+  url: string;
+  apiKey: string;
+}
 
 class SonarrService {
-  private baseURL: string = '';
-  private apiKey: string = '';
+  private config: SonarrConfig;
 
-  initialize(config: { host: string; port: number; apiKey: string; scheme: 'http' | 'https' }) {
-    this.baseURL = `${config.scheme}://${config.host}:${config.port}/api/v3`;
-    this.apiKey = config.apiKey;
+  constructor(config: SonarrConfig) {
+    this.config = config;
   }
 
-  private getHeaders() {
-    return {
-      'X-Api-Key': this.apiKey,
+  private async makeRequest(endpoint: string, options?: RequestInit): Promise<any> {
+    if (!this.config.apiKey || !this.config.url) {
+      throw new Error('Sonarr configuration is incomplete');
+    }
+
+    const url = `${this.config.url}/api/v3${endpoint}`;
+    const headers = {
+      'X-Api-Key': this.config.apiKey,
       'Content-Type': 'application/json',
+      ...options?.headers,
     };
+
+    try {
+      const response = await fetch(url, { 
+        headers,
+        ...options 
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Sonarr API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Sonarr API request failed:', error);
+      throw error;
+    }
   }
 
   async getSeries(): Promise<SonarrSeries[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/series`, {
-        headers: this.getHeaders(),
-      });
-      return response.data;
+      return await this.makeRequest('/series');
     } catch (error) {
-      console.error('Error fetching Sonarr series:', error);
-      throw error;
+      console.error('Failed to fetch Sonarr series:', error);
+      return [];
     }
   }
 
-  async getSeriesById(id: number): Promise<SonarrSeries> {
+  async getQueue(): Promise<SonarrQueueItem[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/series/${id}`, {
-        headers: this.getHeaders(),
-      });
-      return response.data;
+      return await this.makeRequest('/queue');
     } catch (error) {
-      console.error('Error fetching Sonarr series by ID:', error);
-      throw error;
+      console.error('Failed to fetch Sonarr queue:', error);
+      return [];
     }
   }
 
-  async searchSeries(query: string): Promise<SonarrSeries[]> {
+  async searchSeries(query: string): Promise<any[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/series/lookup`, {
-        headers: this.getHeaders(),
-        params: { term: query },
-      });
-      return response.data;
+      const response = await this.makeRequest(`/series/lookup?term=${encodeURIComponent(query)}`);
+      return response || [];
     } catch (error) {
-      console.error('Error searching Sonarr series:', error);
-      throw error;
+      console.error('Failed to search Sonarr series:', error);
+      return [];
     }
   }
 
-  async addSeries(series: {
-    tvdbId: number;
+  async addSeries(seriesData: {
     title: string;
+    titleSlug: string;
+    tvdbId: number;
     qualityProfileId: number;
     rootFolderPath: string;
-    seasonFolder: boolean;
     monitored: boolean;
     searchForMissingEpisodes: boolean;
-  }): Promise<SonarrSeries> {
+    seasonFolder: boolean;
+    tags: string[];
+  }): Promise<SonarrSeries | null> {
     try {
-      const response = await axios.post(`${this.baseURL}/series`, series, {
-        headers: this.getHeaders(),
+      const response = await this.makeRequest('/series', {
+        method: 'POST',
+        body: JSON.stringify(seriesData),
       });
-      return response.data;
+      return response;
     } catch (error) {
-      console.error('Error adding Sonarr series:', error);
-      throw error;
-    }
-  }
-
-  async updateSeries(series: SonarrSeries): Promise<SonarrSeries> {
-    try {
-      const response = await axios.put(`${this.baseURL}/series`, series, {
-        headers: this.getHeaders(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error updating Sonarr series:', error);
-      throw error;
-    }
-  }
-
-  async deleteSeries(id: number, deleteFiles: boolean = false): Promise<void> {
-    try {
-      await axios.delete(`${this.baseURL}/series/${id}`, {
-        headers: this.getHeaders(),
-        params: { deleteFiles },
-      });
-    } catch (error) {
-      console.error('Error deleting Sonarr series:', error);
-      throw error;
+      console.error('Failed to add series to Sonarr:', error);
+      return null;
     }
   }
 
   async getQualityProfiles(): Promise<any[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/qualityprofile`, {
-        headers: this.getHeaders(),
-      });
-      return response.data;
+      return await this.makeRequest('/qualityprofile');
     } catch (error) {
-      console.error('Error fetching quality profiles:', error);
-      throw error;
+      console.error('Failed to fetch quality profiles:', error);
+      return [];
     }
   }
 
   async getRootFolders(): Promise<any[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/rootfolder`, {
-        headers: this.getHeaders(),
-      });
-      return response.data;
+      return await this.makeRequest('/rootfolder');
     } catch (error) {
-      console.error('Error fetching root folders:', error);
-      throw error;
+      console.error('Failed to fetch root folders:', error);
+      return [];
     }
   }
 
-  async getSystemStatus(): Promise<any> {
+  async getTags(): Promise<any[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/system/status`, {
-        headers: this.getHeaders(),
-      });
-      return response.data;
+      return await this.makeRequest('/tag');
     } catch (error) {
-      console.error('Error fetching system status:', error);
-      throw error;
+      console.error('Failed to fetch tags:', error);
+      return [];
     }
   }
 
-  async getCalendar(startDate?: string, endDate?: string): Promise<any[]> {
+  async testConnection(): Promise<boolean> {
     try {
-      const params: any = {};
-      if (startDate) params.start = startDate;
-      if (endDate) params.end = endDate;
-
-      const response = await axios.get(`${this.baseURL}/calendar`, {
-        headers: this.getHeaders(),
-        params,
-      });
-      return response.data;
+      await this.makeRequest('/system/status');
+      return true;
     } catch (error) {
-      console.error('Error fetching calendar:', error);
-      throw error;
+      console.error('Sonarr connection test failed:', error);
+      return false;
     }
-  }
-
-  async getWantedMissing(page: number = 1, pageSize: number = 20): Promise<any> {
-    try {
-      const response = await axios.get(`${this.baseURL}/wanted/missing`, {
-        headers: this.getHeaders(),
-        params: { page, pageSize },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching wanted missing:', error);
-      throw error;
-    }
-  }
-
-  async getHistory(page: number = 1, pageSize: number = 20): Promise<any> {
-    try {
-      const response = await axios.get(`${this.baseURL}/history`, {
-        headers: this.getHeaders(),
-        params: { page, pageSize },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      throw error;
-    }
-  }
-
-  getImageUrl(image: SonarrImage): string {
-    if (image.remoteUrl) {
-      return image.remoteUrl;
-    }
-    return `${this.baseURL}/image/${image.url}`;
   }
 }
 
-export const sonarrService = new SonarrService();
+export default SonarrService;

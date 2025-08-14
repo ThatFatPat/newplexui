@@ -1,157 +1,168 @@
-// This service is temporarily disabled due to TypeScript compatibility issues with @lukehagar/plexjs
-// We're using direct fetch calls in the components instead
+export interface PlexMedia {
+  id: number;
+  title: string;
+  type: 'movie' | 'show';
+  year?: number;
+  summary?: string;
+  rating?: number;
+  duration?: number;
+  thumb?: string;
+  art?: string;
+  banner?: string;
+  genres?: string[];
+  addedAt?: string;
+  updatedAt?: string;
+  viewCount?: number;
+  lastViewedAt?: string;
+}
 
-/*
-import type { PlexMedia, PlexLibrary, PlexServer } from '@lukehagar/plexjs';
-import { PlexAPI } from '@lukehagar/plexjs';
-import type { AppConfig } from '../types';
+export interface PlexConfig {
+  url: string;
+  token: string;
+}
 
-export class PlexService {
-  private config: AppConfig['plex'];
-  private api: PlexAPI | null = null;
+class PlexService {
+  private config: PlexConfig;
 
-  constructor(config: AppConfig['plex']) {
+  constructor(config: PlexConfig) {
     this.config = config;
   }
 
-  private getAPI(): PlexAPI {
-    if (!this.api) {
-      this.api = new PlexAPI({
-        baseUrl: `${this.config.scheme}://${this.config.host}:${this.config.port}`,
-        token: this.config.token,
-      });
+  private async makeRequest(endpoint: string): Promise<any> {
+    if (!this.config.token || !this.config.url) {
+      throw new Error('Plex configuration is incomplete');
     }
-    return this.api;
-  }
 
-  async getServers(): Promise<PlexServer[]> {
-    try {
-      const response = await this.getAPI().server.getServerList();
-      return response.MediaContainer.Server || [];
-    } catch (error) {
-      console.error('Error fetching servers:', error);
-      return [];
-    }
-  }
+    const url = `${this.config.url}${endpoint}`;
+    const headers = {
+      'X-Plex-Token': this.config.token,
+      'Accept': 'application/json'
+    };
 
-  async getLibraries(): Promise<PlexLibrary[]> {
     try {
-      const response = await this.getAPI().library.getAllLibraries();
-      return response.MediaContainer.Directory || [];
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`Plex API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching libraries:', error);
-      return [];
+      console.error('Plex API request failed:', error);
+      throw error;
     }
   }
 
-  async getLibraryItems(libraryId: number, limit = 50): Promise<PlexMedia[]> {
+  async getLibrary(): Promise<PlexMedia[]> {
     try {
-      const response = await this.getAPI().library.getLibraryItems(libraryId, {
-        limit,
-      });
-      return response.MediaContainer.Metadata || [];
-    } catch (error) {
-      console.error('Error fetching library items:', error);
-      return [];
-    }
-  }
+      const data = await this.makeRequest('/library/sections');
+      
+      if (!data.MediaContainer || !data.MediaContainer.Directory) {
+        return [];
+      }
 
-  async searchLibrary(libraryId: number, query: string): Promise<PlexMedia[]> {
-    try {
-      const response = await this.getAPI().library.getSearchLibrary(libraryId, {
-        query,
-        limit: 50,
-      });
-      return response.MediaContainer.Metadata || [];
+      const sections = data.MediaContainer.Directory;
+      const allMedia: PlexMedia[] = [];
+
+      for (const section of sections) {
+        if (section.type === 'movie' || section.type === 'show') {
+          const sectionData = await this.makeRequest(`/library/sections/${section.key}/all`);
+          
+          if (sectionData.MediaContainer && sectionData.MediaContainer.Metadata) {
+            const mediaItems = sectionData.MediaContainer.Metadata.map((item: any) => ({
+              id: parseInt(item.ratingKey),
+              title: item.title,
+              type: section.type as 'movie' | 'show',
+              year: item.year ? parseInt(item.year) : undefined,
+              summary: item.summary,
+              rating: item.rating ? parseFloat(item.rating) : undefined,
+              duration: item.duration ? parseInt(item.duration) : undefined,
+              thumb: item.thumb ? `${this.config.url}${item.thumb}?X-Plex-Token=${this.config.token}` : undefined,
+              art: item.art ? `${this.config.url}${item.art}?X-Plex-Token=${this.config.token}` : undefined,
+              banner: item.banner ? `${this.config.url}${item.banner}?X-Plex-Token=${this.config.token}` : undefined,
+              genres: item.Genre ? item.Genre.map((g: any) => g.tag) : [],
+              addedAt: item.addedAt ? new Date(parseInt(item.addedAt) * 1000).toISOString() : undefined,
+              updatedAt: item.updatedAt ? new Date(parseInt(item.updatedAt) * 1000).toISOString() : undefined,
+              viewCount: item.viewCount ? parseInt(item.viewCount) : 0,
+              lastViewedAt: item.lastViewedAt ? new Date(parseInt(item.lastViewedAt) * 1000).toISOString() : undefined
+            }));
+            
+            allMedia.push(...mediaItems);
+          }
+        }
+      }
+
+      return allMedia;
     } catch (error) {
-      console.error('Error searching library:', error);
+      console.error('Failed to fetch Plex library:', error);
       return [];
     }
   }
 
   async getMediaDetails(mediaId: number): Promise<PlexMedia | null> {
     try {
-      const response = await this.getAPI().library.getMediaMetaData(mediaId);
-      return response.MediaContainer.Metadata[0];
+      const data = await this.makeRequest(`/library/metadata/${mediaId}`);
+      
+      if (!data.MediaContainer || !data.MediaContainer.Metadata || !data.MediaContainer.Metadata[0]) {
+        return null;
+      }
+
+      const item = data.MediaContainer.Metadata[0];
+      
+      return {
+        id: parseInt(item.ratingKey),
+        title: item.title,
+        type: item.type as 'movie' | 'show',
+        year: item.year ? parseInt(item.year) : undefined,
+        summary: item.summary,
+        rating: item.rating ? parseFloat(item.rating) : undefined,
+        duration: item.duration ? parseInt(item.duration) : undefined,
+        thumb: item.thumb ? `${this.config.url}${item.thumb}?X-Plex-Token=${this.config.token}` : undefined,
+        art: item.art ? `${this.config.url}${item.art}?X-Plex-Token=${this.config.token}` : undefined,
+        banner: item.banner ? `${this.config.url}${item.banner}?X-Plex-Token=${this.config.token}` : undefined,
+        genres: item.Genre ? item.Genre.map((g: any) => g.tag) : [],
+        addedAt: item.addedAt ? new Date(parseInt(item.addedAt) * 1000).toISOString() : undefined,
+        updatedAt: item.updatedAt ? new Date(parseInt(item.updatedAt) * 1000).toISOString() : undefined,
+        viewCount: item.viewCount ? parseInt(item.viewCount) : 0,
+        lastViewedAt: item.lastViewedAt ? new Date(parseInt(item.lastViewedAt) * 1000).toISOString() : undefined
+      };
     } catch (error) {
-      console.error('Error fetching media details:', error);
+      console.error('Failed to fetch media details:', error);
       return null;
     }
   }
 
-  async getRecentlyAdded(limit = 20): Promise<PlexMedia[]> {
+  async searchLibrary(query: string): Promise<PlexMedia[]> {
     try {
-      const response = await this.getAPI().library.getRecentlyAddedLibrary({
-        limit,
-      });
-      return response.MediaContainer.Metadata || [];
+      const data = await this.makeRequest(`/search?query=${encodeURIComponent(query)}`);
+      
+      if (!data.MediaContainer || !data.MediaContainer.Metadata) {
+        return [];
+      }
+
+      return data.MediaContainer.Metadata.map((item: any) => ({
+        id: parseInt(item.ratingKey),
+        title: item.title,
+        type: item.type as 'movie' | 'show',
+        year: item.year ? parseInt(item.year) : undefined,
+        summary: item.summary,
+        rating: item.rating ? parseFloat(item.rating) : undefined,
+        duration: item.duration ? parseInt(item.duration) : undefined,
+        thumb: item.thumb ? `${this.config.url}${item.thumb}?X-Plex-Token=${this.config.token}` : undefined,
+        art: item.art ? `${this.config.url}${item.art}?X-Plex-Token=${this.config.token}` : undefined,
+        banner: item.banner ? `${this.config.url}${item.banner}?X-Plex-Token=${this.config.token}` : undefined,
+        genres: item.Genre ? item.Genre.map((g: any) => g.tag) : [],
+        addedAt: item.addedAt ? new Date(parseInt(item.addedAt) * 1000).toISOString() : undefined,
+        updatedAt: item.updatedAt ? new Date(parseInt(item.updatedAt) * 1000).toISOString() : undefined,
+        viewCount: item.viewCount ? parseInt(item.viewCount) : 0,
+        lastViewedAt: item.lastViewedAt ? new Date(parseInt(item.lastViewedAt) * 1000).toISOString() : undefined
+      }));
     } catch (error) {
-      console.error('Error fetching recently added:', error);
+      console.error('Failed to search Plex library:', error);
       return [];
     }
-  }
-
-  async getOnDeck(): Promise<PlexMedia[]> {
-    try {
-      const response = await this.getAPI().library.getOnDeck();
-      return response.MediaContainer.Metadata || [];
-    } catch (error) {
-      console.error('Error fetching on deck:', error);
-      return [];
-    }
-  }
-
-  async markAsWatched(mediaId: number): Promise<void> {
-    try {
-      await this.getAPI().media.markAsWatched(mediaId);
-    } catch (error) {
-      console.error('Error marking as watched:', error);
-    }
-  }
-
-  async markAsUnwatched(mediaId: number): Promise<void> {
-    try {
-      await this.getAPI().media.markAsUnwatched(mediaId);
-    } catch (error) {
-      console.error('Error marking as unwatched:', error);
-    }
-  }
-
-  async updatePlayProgress(mediaId: number, time: number): Promise<void> {
-    try {
-      await this.getAPI().media.updatePlayProgress(mediaId, {
-        time,
-        state: 'playing',
-      });
-    } catch (error) {
-      console.error('Error updating play progress:', error);
-    }
-  }
-
-  getStreamUrl(mediaId: number, partId: number): string {
-    return `${this.config.scheme}://${this.config.host}:${this.config.port}/library/parts/${partId}/file?X-Plex-Token=${this.config.token}`;
   }
 }
 
-export const plexService = new PlexService({
-  scheme: 'http',
-  host: 'localhost',
-  port: 32400,
-  token: '',
-});
-*/
+export default PlexService;
 
-// Placeholder export to prevent import errors
-export const plexService = {
-  getServers: async () => [],
-  getLibraries: async () => [],
-  getLibraryItems: async () => [],
-  searchLibrary: async () => [],
-  getMediaDetails: async () => null,
-  getRecentlyAdded: async () => [],
-  getOnDeck: async () => [],
-  markAsWatched: async () => {},
-  markAsUnwatched: async () => {},
-  updatePlayProgress: async () => {},
-  getStreamUrl: () => '',
-};

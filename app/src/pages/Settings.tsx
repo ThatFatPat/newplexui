@@ -52,14 +52,14 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-full bg-dark-900 p-4">
+    <div className="min-h-full bg-gray-900 p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-4xl mx-auto"
       >
         <div className="flex items-center space-x-3 mb-8">
-          <SettingsIcon className="w-8 h-8 text-primary-500" />
+          <SettingsIcon className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Settings</h1>
         </div>
 
@@ -69,7 +69,7 @@ const Settings = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="card p-6"
+            className="bg-gray-800 rounded-lg border border-gray-700 p-6"
           >
             <h2 className="text-xl font-semibold text-white mb-6">Plex Configuration</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -81,7 +81,7 @@ const Settings = () => {
                   type="text"
                   value={tempConfig.plex.host}
                   onChange={(e) => updateTempConfig('plex', 'host', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="localhost"
                 />
               </div>
@@ -93,7 +93,7 @@ const Settings = () => {
                   type="number"
                   value={tempConfig.plex.port}
                   onChange={(e) => updateTempConfig('plex', 'port', parseInt(e.target.value))}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="32400"
                 />
               </div>
@@ -105,7 +105,7 @@ const Settings = () => {
                   type="password"
                   value={tempConfig.plex.token}
                   onChange={(e) => updateTempConfig('plex', 'token', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Your Plex token"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -119,7 +119,7 @@ const Settings = () => {
                 <select
                   value={tempConfig.plex.scheme}
                   onChange={(e) => updateTempConfig('plex', 'scheme', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="http">HTTP</option>
                   <option value="https">HTTPS</option>
@@ -133,7 +133,7 @@ const Settings = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="card p-6"
+            className="bg-gray-800 rounded-lg border border-gray-700 p-6"
           >
             <h2 className="text-xl font-semibold text-white mb-6">Sonarr Configuration</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,7 +145,7 @@ const Settings = () => {
                   type="text"
                   value={tempConfig.sonarr.host}
                   onChange={(e) => updateTempConfig('sonarr', 'host', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="localhost"
                 />
               </div>
@@ -157,7 +157,7 @@ const Settings = () => {
                   type="number"
                   value={tempConfig.sonarr.port}
                   onChange={(e) => updateTempConfig('sonarr', 'port', parseInt(e.target.value))}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="8989"
                 />
               </div>
@@ -169,7 +169,7 @@ const Settings = () => {
                   type="password"
                   value={tempConfig.sonarr.apiKey}
                   onChange={(e) => updateTempConfig('sonarr', 'apiKey', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Your Sonarr API key"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -183,7 +183,7 @@ const Settings = () => {
                 <select
                   value={tempConfig.sonarr.scheme}
                   onChange={(e) => updateTempConfig('sonarr', 'scheme', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="http">HTTP</option>
                   <option value="https">HTTPS</option>
@@ -197,7 +197,7 @@ const Settings = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="card p-6"
+            className="bg-gray-800 rounded-lg border border-gray-700 p-6"
           >
             <h2 className="text-xl font-semibold text-white mb-6">Radarr Configuration</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ const Settings = () => {
                   type="text"
                   value={tempConfig.radarr.host}
                   onChange={(e) => updateTempConfig('radarr', 'host', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="localhost"
                 />
               </div>
@@ -221,7 +221,7 @@ const Settings = () => {
                   type="number"
                   value={tempConfig.radarr.port}
                   onChange={(e) => updateTempConfig('radarr', 'port', parseInt(e.target.value))}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="7878"
                 />
               </div>
@@ -233,7 +233,7 @@ const Settings = () => {
                   type="password"
                   value={tempConfig.radarr.apiKey}
                   onChange={(e) => updateTempConfig('radarr', 'apiKey', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Your Radarr API key"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -247,7 +247,7 @@ const Settings = () => {
                 <select
                   value={tempConfig.radarr.scheme}
                   onChange={(e) => updateTempConfig('radarr', 'scheme', e.target.value)}
-                  className="input-field w-full"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="http">HTTP</option>
                   <option value="https">HTTPS</option>
@@ -266,7 +266,7 @@ const Settings = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="btn-primary flex items-center justify-center space-x-2"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors"
             >
               <Save className="w-5 h-5" />
               <span>{saving ? 'Saving...' : 'Save Settings'}</span>
@@ -274,7 +274,7 @@ const Settings = () => {
 
             <button
               onClick={resetToDefaults}
-              className="btn-secondary flex items-center justify-center space-x-2"
+              className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors"
             >
               <Trash2 className="w-5 h-5" />
               <span>Reset to Defaults</span>

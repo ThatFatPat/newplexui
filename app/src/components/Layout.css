@@ -1,0 +1,280 @@
+/* Layout Container */
+.layout {
+  min-height: 100vh;
+  background-color: #111827;
+}
+
+/* Mobile Sidebar Overlay */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+.mobile-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 256px;
+  background-color: #1f2937;
+  border-right: 1px solid #374151;
+  z-index: 50;
+}
+
+/* Desktop Sidebar */
+.desktop-sidebar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .desktop-sidebar {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 256px;
+    z-index: 40;
+  }
+}
+
+/* Sidebar Content */
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1f2937;
+  border-right: 1px solid #374151;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  padding: 24px;
+  border-bottom: 1px solid #374151;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  background-color: #2563eb;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.status-text {
+  font-size: 12px;
+}
+
+.status-text.connected {
+  color: #10b981;
+}
+
+.status-text.disconnected {
+  color: #ef4444;
+}
+
+/* Close Button */
+.close-button {
+  padding: 8px;
+  border-radius: 8px;
+  background-color: #374151;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  background-color: #4b5563;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #d1d5db;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background-color: #374151;
+  color: white;
+}
+
+.nav-item.active {
+  background-color: #2563eb;
+  color: white;
+}
+
+.nav-item span {
+  font-weight: 500;
+}
+
+/* Service Status */
+.service-status {
+  padding: 16px;
+  border-top: 1px solid #374151;
+}
+
+.service-status h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #9ca3af;
+  margin: 0 0 12px 0;
+}
+
+.status-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-info span {
+  font-size: 14px;
+  color: #d1d5db;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.connected {
+  background-color: #10b981;
+}
+
+.status-dot.disconnected {
+  background-color: #ef4444;
+}
+
+/* Main Content */
+.main-content {
+  padding-left: 0;
+}
+
+@media (min-width: 1024px) {
+  .main-content {
+    padding-left: 256px;
+  }
+}
+
+/* Top Bar */
+.top-bar {
+  background-color: #1f2937;
+  border-bottom: 1px solid #374151;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.top-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.menu-button {
+  padding: 8px;
+  border-radius: 8px;
+  background-color: #374151;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+}
+
+.menu-button:hover {
+  background-color: #4b5563;
+}
+
+.welcome-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* Page Content */
+.page-content {
+  min-height: 100vh;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1023px) {
+  .menu-button {
+    display: block;
+  }
+  
+  .welcome-text {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .menu-button {
+    display: none;
+  }
+  
+  .welcome-text {
+    display: block;
+  }
+}

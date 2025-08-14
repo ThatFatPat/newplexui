@@ -11,9 +11,11 @@ import {
   Tv,
   Film,
   Wifi,
-  WifiOff
+  WifiOff,
+  X
 } from 'lucide-react';
 import { useConfig } from '../contexts/ConfigContext';
+import './Layout.css';
 
 interface LayoutProps {
   children: ReactNode;
@@ -68,38 +70,116 @@ const Layout = ({ children }: LayoutProps) => {
   const connectionStatus = getConnectionStatus();
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
-      {/* Mobile overlay */}
+    <div className="layout">
+      {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
+        <div className="mobile-overlay">
+          <div className="mobile-sidebar">
+            <div className="sidebar-content">
+              {/* Mobile Sidebar Header */}
+              <div className="sidebar-header">
+                <div className="header-content">
+                  <div className="logo">
+                    <Play size={20} color="white" />
+                  </div>
+                  <div>
+                    <h1 className="app-title">NewPlexUI</h1>
+                    <div className="connection-status">
+                      {connectionStatus.connected ? (
+                        <>
+                          <Wifi size={12} color="#10b981" />
+                          <span className="status-text connected">{connectionStatus.count} service(s) connected</span>
+                        </>
+                      ) : (
+                        <>
+                          <WifiOff size={12} color="#ef4444" />
+                          <span className="status-text disconnected">No services connected</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="close-button"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Mobile Navigation */}
+              <nav className="sidebar-nav">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setIsSidebarOpen(false)}
+                      className={`nav-item ${active ? 'active' : ''}`}
+                    >
+                      <Icon size={20} color={active ? 'white' : '#9ca3af'} />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {/* Mobile Service Status */}
+              <div className="service-status">
+                <h3>Service Status</h3>
+                <div className="status-items">
+                  <div className="status-item">
+                    <div className="status-info">
+                      <Play size={16} color="#3b82f6" />
+                      <span>Plex</span>
+                    </div>
+                    <div className={`status-dot ${config.plex.token ? 'connected' : 'disconnected'}`} />
+                  </div>
+                  <div className="status-item">
+                    <div className="status-info">
+                      <Tv size={16} color="#10b981" />
+                      <span>Sonarr</span>
+                    </div>
+                    <div className={`status-dot ${config.sonarr.apiKey ? 'connected' : 'disconnected'}`} />
+                  </div>
+                  <div className="status-item">
+                    <div className="status-info">
+                      <Film size={16} color="#8b5cf6" />
+                      <span>Radarr</span>
+                    </div>
+                    <div className={`status-dot ${config.radarr.apiKey ? 'connected' : 'disconnected'}`} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Sidebar */}
-      <div className={`fixed lg:relative lg:translate-x-0 lg:w-64 bg-gray-800 border-r border-gray-700 z-50 h-full overflow-y-auto transition-transform duration-300 ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="p-6 border-b border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Play className="w-5 h-5 text-white" />
+      {/* Desktop Sidebar - Fixed */}
+      <aside className="desktop-sidebar">
+        <div className="sidebar-content">
+          {/* Desktop Sidebar Header */}
+          <div className="sidebar-header">
+            <div className="header-content">
+              <div className="logo">
+                <Play size={20} color="white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">NewPlexUI</h1>
-                <div className="flex items-center space-x-1 mt-1">
+                <h1 className="app-title">NewPlexUI</h1>
+                <div className="connection-status">
                   {connectionStatus.connected ? (
                     <>
-                      <Wifi className="w-3 h-3 text-green-500" />
-                      <span className="text-xs text-green-400">{connectionStatus.count} service(s) connected</span>
+                      <Wifi size={12} color="#10b981" />
+                      <span className="status-text connected">{connectionStatus.count} service(s) connected</span>
                     </>
                   ) : (
                     <>
-                      <WifiOff className="w-3 h-3 text-red-500" />
-                      <span className="text-xs text-red-400">No services connected</span>
+                      <WifiOff size={12} color="#ef4444" />
+                      <span className="status-text disconnected">No services connected</span>
                     </>
                   )}
                 </div>
@@ -107,8 +187,8 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          {/* Desktop Navigation */}
+          <nav className="sidebar-nav">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -117,87 +197,67 @@ const Layout = ({ children }: LayoutProps) => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
-                    active
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
+                  className={`nav-item ${active ? 'active' : ''}`}
                 >
-                  <Icon className={`w-5 h-5 transition-colors ${
-                    active ? 'text-white' : 'text-gray-400 group-hover:text-white'
-                  }`} />
-                  <span className="font-medium">{item.name}</span>
+                  <Icon size={20} color={active ? 'white' : '#9ca3af'} />
+                  <span>{item.name}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Service Status */}
-          <div className="p-4 border-t border-gray-700">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Service Status</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Play className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm text-gray-300">Plex</span>
+          {/* Desktop Service Status */}
+          <div className="service-status">
+            <h3>Service Status</h3>
+            <div className="status-items">
+              <div className="status-item">
+                <div className="status-info">
+                  <Play size={16} color="#3b82f6" />
+                  <span>Plex</span>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${config.plex.token ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div className={`status-dot ${config.plex.token ? 'connected' : 'disconnected'}`} />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Tv className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-gray-300">Sonarr</span>
+              <div className="status-item">
+                <div className="status-info">
+                  <Tv size={16} color="#10b981" />
+                  <span>Sonarr</span>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${config.sonarr.apiKey ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div className={`status-dot ${config.sonarr.apiKey ? 'connected' : 'disconnected'}`} />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Film className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm text-gray-300">Radarr</span>
+              <div className="status-item">
+                <div className="status-info">
+                  <Film size={16} color="#8b5cf6" />
+                  <span>Radarr</span>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${config.radarr.apiKey ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div className={`status-dot ${config.radarr.apiKey ? 'connected' : 'disconnected'}`} />
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area - Properly offset with padding */}
+      <div className="main-content">
         {/* Top Bar */}
-        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 lg:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <header className="top-bar">
+          <div className="top-bar-content">
+            <div className="top-bar-left">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+                className="menu-button"
               >
-                <Menu className="w-5 h-5" />
+                <Menu size={20} />
               </button>
 
-              <div className="flex-1 lg:hidden" />
-
-              <div className="flex items-center space-x-4">
-                <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-400">
-                  <span>Welcome to NewPlexUI</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center space-x-2">
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-gray-400">Online</span>
-                </div>
+              <div className="welcome-text">
+                <span>Welcome to NewPlexUI</span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="page-content">
           {children}
         </main>
       </div>

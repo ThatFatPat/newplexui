@@ -9,23 +9,33 @@ interface HeroSectionProps {
 const HeroSection = ({ media }: HeroSectionProps) => {
   const getBackdropUrl = (media: PlexMedia) => {
     if (media.art) {
-      // For now, return a placeholder or construct URL manually
-      return '/placeholder-backdrop.jpg';
+      return media.art;
     }
     if (media.banner) {
-      return '/placeholder-backdrop.jpg';
+      return media.banner;
     }
-    return '/placeholder-backdrop.jpg';
+    return null;
   };
+
+  const backdropUrl = getBackdropUrl(media);
 
   return (
     <div className="relative h-96 md:h-[500px] overflow-hidden">
       <div className="absolute inset-0">
-        <img
-          src={getBackdropUrl(media)}
-          alt={media.title}
-          className="w-full h-full object-cover"
-        />
+        {backdropUrl ? (
+          <img
+            src={backdropUrl}
+            alt={media.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+            <div className="text-center text-gray-400">
+              <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">{media.title}</p>
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent" />
       </div>
       

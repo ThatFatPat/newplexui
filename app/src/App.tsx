@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { AppConfig } from './types';
 
 // Components
@@ -42,15 +42,14 @@ function App() {
     const saved = localStorage.getItem('newplexui-config');
     return saved ? JSON.parse(saved) : defaultConfig;
   });
-  const [isConfigured, setIsConfigured] = useState(false);
 
-  useEffect(() => {
+  const isConfigured = useMemo(() => {
     // Check if services are configured
     const hasPlexToken = config.plex.token.length > 0;
     const hasSonarrKey = config.sonarr.apiKey.length > 0;
     const hasRadarrKey = config.radarr.apiKey.length > 0;
 
-    setIsConfigured(hasPlexToken || hasSonarrKey || hasRadarrKey);
+    return hasPlexToken || hasSonarrKey || hasRadarrKey;
   }, [config]);
 
   const updateConfig = (newConfig: AppConfig) => {
