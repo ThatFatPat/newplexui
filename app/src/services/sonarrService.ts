@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { SonarrSeries, SonarrImage } from '../types';
+import type { SonarrSeries, SonarrImage } from '../types';
 
 class SonarrService {
   private baseURL: string = '';

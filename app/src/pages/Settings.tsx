@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Save, TestTube, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Trash2 } from 'lucide-react';
 import { useConfig } from '../contexts/ConfigContext';
-import { AppConfig } from '../types';
+import type { AppConfig } from '../types';
 
 const Settings = () => {
   const { config, updateConfig } = useConfig();
@@ -271,7 +271,7 @@ const Settings = () => {
               <Save className="w-5 h-5" />
               <span>{saving ? 'Saving...' : 'Save Settings'}</span>
             </button>
-            
+
             <button
               onClick={resetToDefaults}
               className="btn-secondary flex items-center justify-center space-x-2"

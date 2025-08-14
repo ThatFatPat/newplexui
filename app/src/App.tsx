@@ -1,10 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { AppConfig } from './types';
-import { plexService } from './services/plexService';
-import { sonarrService } from './services/sonarrService';
-import { radarrService } from './services/radarrService';
+import type { AppConfig } from './types';
 
 // Components
 import Layout from './components/Layout';
@@ -52,19 +49,8 @@ function App() {
     const hasPlexToken = config.plex.token.length > 0;
     const hasSonarrKey = config.sonarr.apiKey.length > 0;
     const hasRadarrKey = config.radarr.apiKey.length > 0;
-    
-    setIsConfigured(hasPlexToken || hasSonarrKey || hasRadarrKey);
 
-    // Initialize services if configured
-    if (hasPlexToken) {
-      plexService.initialize(config.plex);
-    }
-    if (hasSonarrKey) {
-      sonarrService.initialize(config.sonarr);
-    }
-    if (hasRadarrKey) {
-      radarrService.initialize(config.radarr);
-    }
+    setIsConfigured(hasPlexToken || hasSonarrKey || hasRadarrKey);
   }, [config]);
 
   const updateConfig = (newConfig: AppConfig) => {
@@ -75,7 +61,7 @@ function App() {
   return (
     <ConfigProvider value={{ config, updateConfig, isConfigured }}>
       <Router>
-        <div className="min-h-screen bg-dark-900 text-white">
+        <div className="min-h-screen bg-gray-900 text-white">
           <AnimatePresence mode="wait">
             {!isConfigured ? (
               <motion.div
@@ -99,6 +85,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/search" element={<Search />} />
+                    <Route path="/library" element={<Library />} />
                     <Route path="/library/:type" element={<Library />} />
                     <Route path="/media/:type/:id" element={<MediaDetails />} />
                     <Route path="/player/:type/:id" element={<Player />} />

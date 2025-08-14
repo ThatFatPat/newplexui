@@ -91,33 +91,16 @@ export interface SonarrSeries {
   seasonFolder: boolean;
   monitored: boolean;
   useSceneNumbering: boolean;
-  runtime: number;
   images: SonarrImage[];
   seasons: SonarrSeason[];
   year: number;
   profileId: number;
-  seasonFolder: boolean;
-  monitored: boolean;
-  useSceneNumbering: boolean;
-  runtime: number;
-  tvdbId: number;
-  tvRageId: number;
-  tvMazeId: number;
-  firstAired: string;
   seriesType: string;
-  cleanTitle: string;
   imdbId: string;
   titleSlug: string;
   certification: string;
   genres: string[];
   tags: number[];
-  added: string;
-  ratings: {
-    votes: number;
-    value: number;
-  };
-  qualityProfileId: number;
-  id: number;
 }
 
 export interface SonarrImage {
@@ -183,34 +166,6 @@ export interface RadarrMovie {
   };
   movieFile: RadarrMovieFile;
   collection: RadarrCollection;
-  digitalRelease: string;
-  physicalRelease: string;
-  inCinemas: string;
-  website: string;
-  youTubeTrailerId: string;
-  studio: string;
-  path: string;
-  qualityProfileId: number;
-  monitored: boolean;
-  minimumAvailability: string;
-  isAvailable: boolean;
-  folderName: string;
-  runtime: number;
-  cleanTitle: string;
-  imdbId: string;
-  tmdbId: number;
-  titleSlug: string;
-  genres: string[];
-  tags: number[];
-  added: string;
-  ratings: {
-    votes: number;
-    value: number;
-    type: string;
-  };
-  movieFile: RadarrMovieFile;
-  collection: RadarrCollection;
-  id: number;
 }
 
 export interface RadarrAlternateTitle {

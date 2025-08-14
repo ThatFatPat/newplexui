@@ -1,5 +1,6 @@
-import { createContext, useContext, ReactNode } from 'react';
-import { AppConfig } from '../types';
+import { createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
+import type { AppConfig } from '../types';
 
 interface ConfigContextType {
   config: AppConfig;

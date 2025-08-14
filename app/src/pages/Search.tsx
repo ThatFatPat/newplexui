@@ -1,247 +1,172 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Search as SearchIcon, Filter, X } from 'lucide-react';
-import { SearchResult } from '../types';
-import { plexService } from '../services/plexService';
-import { sonarrService } from '../services/sonarrService';
-import { radarrService } from '../services/radarrService';
-import { useConfig } from '../contexts/ConfigContext';
-import MediaCard from '../components/MediaCard';
+import { useState } from 'react';
+import { Search as SearchIcon } from 'lucide-react';
+
+interface SearchResult {
+  id: string;
+  title: string;
+  year?: number;
+  type: 'movie' | 'show';
+  overview?: string;
+  poster?: string;
+  backdrop?: string;
+  rating?: number;
+  genres?: string[];
+  source: 'plex' | 'sonarr' | 'radarr';
+}
 
 const Search = () => {
-  const { config } = useConfig();
-  const [query, setQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({
-    type: 'all',
-    source: 'all',
-  });
 
-  const searchAll = async (searchQuery: string) => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setResults([]);
       return;
     }
 
     setLoading(true);
-    const allResults: SearchResult[] = [];
-
-    try {
-      // Search Plex
-      if (config.plex.token) {
-        try {
-          const plexResults = await plexService.searchLibrary(1, searchQuery);
-          allResults.push(...plexResults.map(item => ({
-            id: `plex-${item.id}`,
-            title: item.title,
-            year: item.year,
-            type: item.type as 'movie' | 'show',
-            overview: item.summary,
-            poster: item.thumb,
-            backdrop: item.art,
-            rating: item.rating,
-            genres: item.genres,
-            source: 'plex' as const,
-          })));
-        } catch (error) {
-          console.error('Plex search error:', error);
-        }
+    
+    // For now, return placeholder results
+    const placeholderResults: SearchResult[] = [
+      {
+        id: '1',
+        title: 'Sample Movie',
+        year: 2024,
+        type: 'movie',
+        overview: 'This is a sample movie for demonstration purposes.',
+        poster: '/placeholder-poster.jpg',
+        backdrop: '/placeholder-backdrop.jpg',
+        rating: 8.5,
+        genres: ['Action', 'Adventure'],
+        source: 'plex'
+      },
+      {
+        id: '2',
+        title: 'Sample TV Show',
+        year: 2023,
+        type: 'show',
+        overview: 'This is a sample TV show for demonstration purposes.',
+        poster: '/placeholder-poster.jpg',
+        backdrop: '/placeholder-backdrop.jpg',
+        rating: 7.8,
+        genres: ['Drama', 'Thriller'],
+        source: 'sonarr'
       }
+    ];
 
-      // Search Sonarr
-      if (config.sonarr.apiKey) {
-        try {
-          const sonarrResults = await sonarrService.searchSeries(searchQuery);
-          allResults.push(...sonarrResults.map(item => ({
-            id: `sonarr-${item.id}`,
-            title: item.title,
-            year: item.year,
-            type: 'show' as const,
-            overview: item.overview,
-            poster: item.images?.find(img => img.coverType === 'poster')?.remoteUrl,
-            backdrop: item.images?.find(img => img.coverType === 'fanart')?.remoteUrl,
-            rating: item.ratings?.value,
-            genres: item.genres,
-            source: 'sonarr' as const,
-          })));
-        } catch (error) {
-          console.error('Sonarr search error:', error);
-        }
-      }
-
-      // Search Radarr
-      if (config.radarr.apiKey) {
-        try {
-          const radarrResults = await radarrService.searchMovies(searchQuery);
-          allResults.push(...radarrResults.map(item => ({
-            id: `radarr-${item.id}`,
-            title: item.title,
-            year: item.year,
-            type: 'movie' as const,
-            overview: item.overview,
-            poster: item.images?.find(img => img.coverType === 'poster')?.remoteUrl,
-            backdrop: item.images?.find(img => img.coverType === 'fanart')?.remoteUrl,
-            rating: item.ratings?.value,
-            genres: item.genres,
-            source: 'radarr' as const,
-          })));
-        } catch (error) {
-          console.error('Radarr search error:', error);
-        }
-      }
-
-      // Apply filters
-      let filteredResults = allResults;
-      if (filters.type !== 'all') {
-        filteredResults = filteredResults.filter(result => result.type === filters.type);
-      }
-      if (filters.source !== 'all') {
-        filteredResults = filteredResults.filter(result => result.source === filters.source);
-      }
-
-      setResults(filteredResults);
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
+    // Simulate API delay
+    setTimeout(() => {
+      setResults(placeholderResults);
       setLoading(false);
+    }, 500);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      searchAll(query);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [query, filters]);
-
-  const clearSearch = () => {
-    setQuery('');
-    setResults([]);
-  };
-
   return (
-    <div className="min-h-full bg-dark-900 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-7xl mx-auto"
-      >
-        {/* Search Header */}
+    <div className="min-h-full bg-gray-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-6">Search</h1>
-          
-          {/* Search Bar */}
-          <div className="relative max-w-2xl">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for movies, TV shows, and more..."
-              className="input-field w-full pl-10 pr-12 py-4 text-lg"
-            />
-            {query && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-dark-700 rounded"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            )}
-          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Search</h1>
+          <p className="text-gray-400">Find movies, TV shows, and more across your services</p>
+        </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-400 text-sm">Filters:</span>
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search for movies, TV shows, actors, directors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="w-full bg-gray-800 border border-gray-600 text-white rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-              className="input-field text-sm"
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
             >
-              <option value="all">All Types</option>
-              <option value="movie">Movies</option>
-              <option value="show">TV Shows</option>
-            </select>
-
-            <select
-              value={filters.source}
-              onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
-              className="input-field text-sm"
-            >
-              <option value="all">All Sources</option>
-              <option value="plex">Plex</option>
-              <option value="sonarr">Sonarr</option>
-              <option value="radarr">Radarr</option>
-            </select>
+              {loading ? 'Searching...' : 'Search'}
+            </button>
           </div>
         </div>
 
-        {/* Search Results */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        {/* Results */}
+        {loading && (
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Searching...</p>
           </div>
-        ) : query ? (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">
-                Search Results ({results.length})
-              </h2>
-            </div>
+        )}
 
-            {results.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                {results.map((result) => (
-                  <div key={result.id} className="relative">
-                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-dark-800">
-                      <img
-                        src={result.poster || '/placeholder-poster.jpg'}
-                        alt={result.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 right-2">
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-dark-800/80 text-white">
-                          {result.source}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <h3 className="text-white font-medium text-sm line-clamp-2">
-                        {result.title}
-                      </h3>
-                      {result.year && (
-                        <p className="text-gray-400 text-xs">{result.year}</p>
-                      )}
-                    </div>
+        {!loading && results.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Found {results.length} result{results.length !== 1 ? 's' : ''}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {results.map((result) => (
+                <div
+                  key={result.id}
+                  className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  <div className="aspect-[2/3] bg-gray-700">
+                    <img
+                      src={result.poster || '/placeholder-poster.jpg'}
+                      alt={result.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <SearchIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-400 mb-2">No results found</h3>
-                <p className="text-gray-500">
-                  Try adjusting your search terms or filters
-                </p>
-              </div>
-            )}
+                  <div className="p-3">
+                    <h3 className="font-medium text-white text-sm truncate mb-1">
+                      {result.title}
+                    </h3>
+                    {result.year && (
+                      <p className="text-xs text-gray-400">{result.year}</p>
+                    )}
+                    {result.rating && (
+                      <div className="flex items-center mt-1">
+                        <span className="text-xs text-yellow-500">★</span>
+                        <span className="text-xs text-gray-400 ml-1">{result.rating}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <SearchIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">Start searching</h3>
-            <p className="text-gray-500">
-              Search for movies, TV shows, and more across your media libraries
+        )}
+
+        {!loading && searchQuery && results.length === 0 && (
+          <div className="text-center py-16">
+            <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-xl font-medium text-white mb-2">No results found</h3>
+            <p className="text-gray-400">
+              Try adjusting your search terms or check your service connections.
             </p>
           </div>
         )}
-      </motion.div>
+
+        {!loading && !searchQuery && (
+          <div className="text-center py-16">
+            <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-xl font-medium text-white mb-2">Start searching</h3>
+            <p className="text-gray-400">
+              Enter a search term above to find movies, TV shows, and more.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

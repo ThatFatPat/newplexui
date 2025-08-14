@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RadarrMovie, RadarrImage } from '../types';
+import type { RadarrMovie, RadarrImage } from '../types';
 
 class RadarrService {
   private baseURL: string = '';

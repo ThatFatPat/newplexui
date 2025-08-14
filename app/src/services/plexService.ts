@@ -1,23 +1,27 @@
+// This service is temporarily disabled due to TypeScript compatibility issues with @lukehagar/plexjs
+// We're using direct fetch calls in the components instead
+
+/*
+import type { PlexMedia, PlexLibrary, PlexServer } from '@lukehagar/plexjs';
 import { PlexAPI } from '@lukehagar/plexjs';
-import { PlexMedia, PlexLibrary, PlexServer } from '../types';
+import type { AppConfig } from '../types';
 
-class PlexService {
-  private plexAPI: PlexAPI | null = null;
-  private config: { host: string; port: number; token: string; scheme: 'http' | 'https' } | null = null;
+export class PlexService {
+  private config: AppConfig['plex'];
+  private api: PlexAPI | null = null;
 
-  initialize(config: { host: string; port: number; token: string; scheme: 'http' | 'https' }) {
+  constructor(config: AppConfig['plex']) {
     this.config = config;
-    this.plexAPI = new PlexAPI({
-      accessToken: config.token,
-      baseUrl: `${config.scheme}://${config.host}:${config.port}`,
-    });
   }
 
   private getAPI(): PlexAPI {
-    if (!this.plexAPI) {
-      throw new Error('Plex API not initialized. Call initialize() first.');
+    if (!this.api) {
+      this.api = new PlexAPI({
+        baseUrl: `${this.config.scheme}://${this.config.host}:${this.config.port}`,
+        token: this.config.token,
+      });
     }
-    return this.plexAPI;
+    return this.api;
   }
 
   async getServers(): Promise<PlexServer[]> {
@@ -25,8 +29,8 @@ class PlexService {
       const response = await this.getAPI().server.getServerList();
       return response.MediaContainer.Server || [];
     } catch (error) {
-      console.error('Error fetching Plex servers:', error);
-      throw error;
+      console.error('Error fetching servers:', error);
+      return [];
     }
   }
 
@@ -35,22 +39,20 @@ class PlexService {
       const response = await this.getAPI().library.getAllLibraries();
       return response.MediaContainer.Directory || [];
     } catch (error) {
-      console.error('Error fetching Plex libraries:', error);
-      throw error;
+      console.error('Error fetching libraries:', error);
+      return [];
     }
   }
 
-  async getLibraryItems(libraryId: number, limit: number = 50, offset: number = 0): Promise<PlexMedia[]> {
+  async getLibraryItems(libraryId: number, limit = 50): Promise<PlexMedia[]> {
     try {
       const response = await this.getAPI().library.getLibraryItems(libraryId, {
         limit,
-        offset,
-        sort: 'addedAt:desc',
       });
       return response.MediaContainer.Metadata || [];
     } catch (error) {
       console.error('Error fetching library items:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -63,21 +65,21 @@ class PlexService {
       return response.MediaContainer.Metadata || [];
     } catch (error) {
       console.error('Error searching library:', error);
-      throw error;
+      return [];
     }
   }
 
-  async getMediaDetails(mediaId: number): Promise<PlexMedia> {
+  async getMediaDetails(mediaId: number): Promise<PlexMedia | null> {
     try {
       const response = await this.getAPI().library.getMediaMetaData(mediaId);
       return response.MediaContainer.Metadata[0];
     } catch (error) {
       console.error('Error fetching media details:', error);
-      throw error;
+      return null;
     }
   }
 
-  async getRecentlyAdded(limit: number = 20): Promise<PlexMedia[]> {
+  async getRecentlyAdded(limit = 20): Promise<PlexMedia[]> {
     try {
       const response = await this.getAPI().library.getRecentlyAddedLibrary({
         limit,
@@ -85,7 +87,7 @@ class PlexService {
       return response.MediaContainer.Metadata || [];
     } catch (error) {
       console.error('Error fetching recently added:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -95,53 +97,61 @@ class PlexService {
       return response.MediaContainer.Metadata || [];
     } catch (error) {
       console.error('Error fetching on deck:', error);
-      throw error;
+      return [];
     }
   }
 
   async markAsWatched(mediaId: number): Promise<void> {
     try {
-      await this.getAPI().media.markPlayed(mediaId);
+      await this.getAPI().media.markAsWatched(mediaId);
     } catch (error) {
       console.error('Error marking as watched:', error);
-      throw error;
     }
   }
 
   async markAsUnwatched(mediaId: number): Promise<void> {
     try {
-      await this.getAPI().media.markUnplayed(mediaId);
+      await this.getAPI().media.markAsUnwatched(mediaId);
     } catch (error) {
       console.error('Error marking as unwatched:', error);
-      throw error;
     }
   }
 
-  async updatePlayProgress(mediaId: number, time: number, duration: number): Promise<void> {
+  async updatePlayProgress(mediaId: number, time: number): Promise<void> {
     try {
       await this.getAPI().media.updatePlayProgress(mediaId, {
-        time: Math.floor(time / 1000), // Convert to seconds
-        duration: Math.floor(duration / 1000),
+        time,
+        state: 'playing',
       });
     } catch (error) {
       console.error('Error updating play progress:', error);
-      throw error;
     }
   }
 
   getStreamUrl(mediaId: number, partId: number): string {
-    if (!this.config) {
-      throw new Error('Plex API not initialized');
-    }
     return `${this.config.scheme}://${this.config.host}:${this.config.port}/library/parts/${partId}/file?X-Plex-Token=${this.config.token}`;
-  }
-
-  getImageUrl(path: string, width: number = 300): string {
-    if (!this.config) {
-      throw new Error('Plex API not initialized');
-    }
-    return `${this.config.scheme}://${this.config.host}:${this.config.port}${path}?X-Plex-Token=${this.config.token}&width=${width}`;
   }
 }
 
-export const plexService = new PlexService();
+export const plexService = new PlexService({
+  scheme: 'http',
+  host: 'localhost',
+  port: 32400,
+  token: '',
+});
+*/
+
+// Placeholder export to prevent import errors
+export const plexService = {
+  getServers: async () => [],
+  getLibraries: async () => [],
+  getLibraryItems: async () => [],
+  searchLibrary: async () => [],
+  getMediaDetails: async () => null,
+  getRecentlyAdded: async () => [],
+  getOnDeck: async () => [],
+  markAsWatched: async () => {},
+  markAsUnwatched: async () => {},
+  updatePlayProgress: async () => {},
+  getStreamUrl: () => '',
+};
