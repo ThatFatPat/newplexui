@@ -423,16 +423,16 @@ const MediaDetails = () => {
                               let thumb = '';
                               let plexEp = null;
                               if (plexSeason && plexSeason.episodes) {
-                                plexEp = plexSeason.episodes.find((pe: any) => pe.index === ep.episodeNumber);
+                                plexEp = plexSeason.episodes[ep.episodeNumber - 1] ?? null;
                               }
                               {/* Thumbnail */ }
                               // Debug: log full episode objects
                               console.log('plexEp:', plexEp, 'sonarrEp:', ep);
                               // Try Plex thumb, then Sonarr images (screenshot, poster, banner), then fallback
                               if (plexEp && plexEp.thumb) {
-                                console.log('Plex episode thumb:', plexEp.thumb, ep.title);
+                                thumb = plexEp.thumb;
                               }
-                              if (ep.images && Array.isArray(ep.images)) {
+                              else if (ep.images && Array.isArray(ep.images)) {
                                 // Try screenshot, then poster, then banner
                                 const img = ep.images.find((img: any) => img.coverType === 'screenshot')
                                   || ep.images.find((img: any) => img.coverType === 'poster')
@@ -443,7 +443,7 @@ const MediaDetails = () => {
                                 }
                               }
                               // Fallback: use Sonarr series images (poster/banner)
-                              if (ep.seriesImages && Array.isArray(ep.seriesImages)) {
+                              else if (ep.seriesImages && Array.isArray(ep.seriesImages)) {
                                 const img = ep.seriesImages.find((img: any) => img.coverType === 'poster')
                                   || ep.seriesImages.find((img: any) => img.coverType === 'banner')
                                   || ep.seriesImages[0];
