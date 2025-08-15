@@ -1,3 +1,4 @@
+console.log('MediaDetails.tsx loaded at', new Date().toISOString());
 // ...existing code...
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -6,6 +7,75 @@ import type { PlexMedia, PlexSeason } from '../types';
 import { useConfig } from '../contexts/ConfigContext';
 import PlexService from '../services/plexService';
 import SonarrService from '../services/sonarrService';
+
+
+// Helper to get Sonarr config (since config is private)
+function getSonarrConfig(sonarrService: SonarrService) {
+  // @ts-ignore
+  return sonarrService.config || sonarrService["config"];
+}
+
+async function setSonarrEpisodeMonitored(
+  sonarrService: SonarrService | null,
+  episodeId: number,
+  monitored = true
+): Promise<void> {
+  if (!sonarrService || !episodeId) return;
+  const allSeries = await sonarrService.getSeries();
+  let foundEp: any = null;
+  for (const series of allSeries) {
+    const episodes: any[] = await sonarrService.getEpisodes(series.id);
+    const ep = episodes.find((e: any) => e.id === episodeId);
+    if (ep) {
+      foundEp = ep;
+      break;
+    }
+  }
+  if (!foundEp) return;
+  const config = getSonarrConfig(sonarrService);
+  await fetch(`${config.url}/api/v3/episode/${episodeId}`, {
+    method: 'PUT',
+    headers: {
+      'X-Api-Key': config.apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ...foundEp, monitored }),
+  });
+}
+
+async function setSonarrSeasonMonitored(
+  sonarrService: SonarrService | null,
+  seriesId: number,
+  seasonNumber: number,
+  monitored = true
+): Promise<void> {
+  if (!sonarrService || !seriesId || seasonNumber == null) {
+    console.log('setSonarrSeasonMonitored: missing sonarrService, seriesId, or seasonNumber', { sonarrService, seriesId, seasonNumber });
+    return;
+  }
+  const seriesArr = await sonarrService.getSeries();
+  const series = seriesArr.find((s: any) => s.id === seriesId);
+  if (!series) {
+    console.log('setSonarrSeasonMonitored: series not found', { seriesId, seriesArr });
+    return;
+  }
+  const newSeasons = (series.seasons || []).map((s: any) =>
+    s.seasonNumber === seasonNumber ? { ...s, monitored } : s
+  );
+  const config = getSonarrConfig(sonarrService);
+  const url = `${config.url}/api/v3/series/${seriesId}`;
+  const payload = { ...series, seasons: newSeasons };
+  console.log('setSonarrSeasonMonitored: sending PUT', { url, payload });
+  await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'X-Api-Key': config.apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 import './MediaDetails.css';
 
 interface MediaDetailsParams {
@@ -279,208 +349,204 @@ const MediaDetails = () => {
             )}
 
             {/* --- SEASONS/EPISODES LIST --- */}
-            {media?.type === 'show' && sonarrEpisodes && sonarrEpisodes.length > 0 && (
-              <div className="seasons-list details-seasons-list">
-                <h2>Seasons & Episodes</h2>
-                {/* Build a union of all season numbers from Sonarr and Plex */}
-                {(() => {
-                  // Get all Sonarr season numbers
-                  const sonarrSeasonNumbers = Array.from(new Set(sonarrEpisodes.map((ep: any) => ep.seasonNumber)));
-                  // Get all Plex season numbers (from Plex seasons)
-                  const plexSeasonNumbers = seasons.map((season) => {
-                    let seasonNum = null;
-                    if (typeof season.title === 'string') {
-                      const match = season.title.match(/(\d+)/);
-                      if (match) seasonNum = parseInt(match[1]);
-                    }
-                    if (!seasonNum) seasonNum = season.id;
-                    return seasonNum;
-                  });
-                  // Union of all season numbers
-                  const allSeasonNumbers = Array.from(new Set([...sonarrSeasonNumbers, ...plexSeasonNumbers])).sort((a, b) => a - b);
-                  return allSeasonNumbers.map((seasonNum) => {
-                    // Find Plex season (if any) for this seasonNum
+            {media?.type === 'show' && sonarrEpisodes && sonarrEpisodes.length > 0 && (() => {
+              // Build a union of all season numbers from Sonarr and Plex
+              const sonarrSeasonNumbers = Array.from(new Set(sonarrEpisodes.map((ep: any) => ep.seasonNumber)));
+              const plexSeasonNumbers = seasons.map((season) => {
+                let seasonNum = null;
+                if (typeof season.title === 'string') {
+                  const match = season.title.match(/(\d+)/);
+                  if (match) seasonNum = parseInt(match[1]);
+                }
+                if (!seasonNum) seasonNum = season.id;
+                return seasonNum;
+              });
+              const allSeasonNumbers = Array.from(new Set([...sonarrSeasonNumbers, ...plexSeasonNumbers])).sort((a, b) => a - b);
+
+              return (
+                <div className="seasons-list details-seasons-list">
+                  <h2>Seasons & Episodes</h2>
+                  {allSeasonNumbers.map((seasonNum) => {
+                    // Find Plex and Sonarr season info
                     const plexSeason = seasons.find((season) => {
-                      let sNum = null;
+                      let seasonNumGuess = null;
                       if (typeof season.title === 'string') {
                         const match = season.title.match(/(\d+)/);
-                        if (match) sNum = parseInt(match[1]);
+                        if (match) seasonNumGuess = parseInt(match[1]);
                       }
-                      if (!sNum) sNum = season.id;
-                      return sNum === seasonNum;
+                      if (!seasonNumGuess) seasonNumGuess = season.id;
+                      return seasonNumGuess === seasonNum;
                     });
-                    // Get all Sonarr episodes for this season
-                    const sonarrSeasonEpisodes = sonarrEpisodes.filter((sEp: any) => sEp.seasonNumber === seasonNum);
-                    // Map Plex episodes by episode number for easier lookup
-                    const plexEpByNumber = new Map();
-                    if (plexSeason) {
-                      plexSeason.episodes.forEach((ep, idx) => {
-                        // Try to extract episode number from title, fallback to index+1
-                        let epNum = null;
-                        const match = ep.title.match(/Episode (\d+)/i);
-                        if (match) epNum = parseInt(match[1]);
-                        if (!epNum) epNum = idx + 1;
-                        plexEpByNumber.set(epNum, ep);
-                      });
-                    }
+                    const sonarrSeasonEpisodes = sonarrEpisodes.filter((ep: any) => ep.seasonNumber === seasonNum);
+                    const hasAnyEpisodeDownloading = sonarrSeasonEpisodes.some((ep: any) => downloading[ep.id]);
+                    const allDownloaded = sonarrSeasonEpisodes.length > 0 && sonarrSeasonEpisodes.every((ep: any) => ep.hasFile);
+                    const anyUndownloaded = sonarrSeasonEpisodes.some((ep: any) => !ep.hasFile);
                     const isExpanded = expandedSeasons.has(seasonNum);
-                    // Determine if all episodes are unavailable (not downloaded)
-                    const allUndownloaded = sonarrSeasonEpisodes.length > 0 && sonarrSeasonEpisodes.every((ep: any) => !ep.hasFile);
                     return (
                       <div key={seasonNum} className="season-block">
-                        <div className="season-header-row">
-                          <button
-                            className="season-toggle"
-                            onClick={() => {
-                              setExpandedSeasons(prev => {
-                                const next = new Set(prev);
-                                if (next.has(seasonNum)) {
-                                  next.delete(seasonNum);
-                                } else {
-                                  next.add(seasonNum);
-                                }
-                                return next;
-                              });
-                            }}
-                          >
-                            {isExpanded ? <ChevronDown /> : <ChevronRight />}
-                            <span>{plexSeason ? plexSeason.title : `Season ${seasonNum}`}</span>
-                          </button>
-                          {/* Show season download button if all episodes are unavailable */}
-                          {allUndownloaded && sonarrSeriesId && (
-                            <button
-                              className="download-season-btn"
-                              disabled={!!downloadingSeason[seasonNum]}
-                              onClick={e => {
-                                e.stopPropagation();
-                                setSeasonToDownload(seasonNum);
-                                setShowSeasonModal(true);
-                              }}
-                            >
-                              <Download className="w-5 h-5" /> Download Season
+                        <div className="season-header" onClick={() => {
+                          setExpandedSeasons(prev => {
+                            const next = new Set(prev);
+                            if (next.has(seasonNum)) next.delete(seasonNum); else next.add(seasonNum);
+                            return next;
+                          });
+                        }}>
+                          <div className="season-title-row">
+                            <button className="expand-btn" aria-label={isExpanded ? 'Collapse' : 'Expand'}>
+                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                             </button>
-                          )}
+                            <span className="season-title">{plexSeason?.title || `Season ${seasonNum}`}</span>
+                            {anyUndownloaded && (
+                              <button
+                                className="download-season-btn"
+                                disabled={downloadingSeason[seasonNum] || hasAnyEpisodeDownloading}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setSeasonToDownload(seasonNum);
+                                  setShowSeasonModal(true);
+                                }}
+                              >
+                                <Download className="w-4 h-4" />
+                                {downloadingSeason[seasonNum] ? 'Downloading...' : 'Download Season'}
+                              </button>
+                            )}
+                            {allDownloaded && <span className="season-downloaded">All Downloaded</span>}
+                          </div>
                         </div>
                         {isExpanded && (
-                          <ul className="episodes-list">
-                            {sonarrSeasonEpisodes.map((sonarrEp: any) => {
-                              const plexEp = plexEpByNumber.get(sonarrEp.episodeNumber);
-                              const isDownloaded = !!sonarrEp.hasFile;
+                          <div className="episodes-list">
+                            {sonarrSeasonEpisodes.length === 0 && (
+                              <div className="no-episodes">No episodes found for this season.</div>
+                            )}
+                            {sonarrSeasonEpisodes.map((ep: any) => {
+                              // Prefer Plex episode thumb, then Sonarr episodeFile.coverImage, then Sonarr seriesImages
+                              let thumb = '';
+                              let plexEp = null;
+                              if (plexSeason && plexSeason.episodes) {
+                                plexEp = plexSeason.episodes.find((pe: any) => pe.index === ep.episodeNumber);
+                                if (plexEp && plexEp.thumb) {
+                                  thumb = plexEp.thumb;
+                                }
+                              }
+                              if (!thumb && ep.episodeFile && ep.episodeFile.coverImage) {
+                                thumb = ep.episodeFile.coverImage;
+                              }
+                              if (!thumb && ep.images && Array.isArray(ep.images) && ep.images.length > 0) {
+                                // Sonarr episode images (if present)
+                                const img = ep.images.find((img: any) => img.coverType === 'screenshot' || img.coverType === 'poster');
+                                if (img) thumb = img.url;
+                              }
+                              if (!thumb && ep.seriesImages && Array.isArray(ep.seriesImages) && ep.seriesImages.length > 0) {
+                                // Sonarr series images as last fallback
+                                const img = ep.seriesImages.find((img: any) => img.coverType === 'banner' || img.coverType === 'poster');
+                                if (img) thumb = img.url;
+                              }
                               return (
-                                <li key={sonarrEp.id} className={`episode-item${isDownloaded ? '' : ' undownloaded'}`}>
-                                  <div className="episode-link-row">
-                                    <button className="episode-link">
-                                      <div className="episode-main-row">
-                                        {/* Thumbnail */}
-                                        {(() => {
-                                          // Debug: log full episode objects
-                                          console.log('plexEp:', plexEp, 'sonarrEp:', sonarrEp);
-                                          // Try Plex thumb, then Sonarr images (screenshot, poster, banner), then fallback
-                                          if (plexEp && plexEp.thumb) {
-                                            console.log('Plex episode thumb:', plexEp.thumb, sonarrEp.title);
-                                            return <img src={plexEp.thumb} alt={sonarrEp.title} className="episode-thumb" />;
-                                          }
-                                          if (sonarrEp.images && Array.isArray(sonarrEp.images)) {
-                                            // Try screenshot, then poster, then banner
-                                            const img = sonarrEp.images.find((img: any) => img.coverType === 'screenshot')
-                                              || sonarrEp.images.find((img: any) => img.coverType === 'poster')
-                                              || sonarrEp.images.find((img: any) => img.coverType === 'banner')
-                                              || sonarrEp.images[0];
-                                            if (img && (img.remoteUrl || img.url)) {
-                                              const url = img.remoteUrl || img.url;
-                                              console.log('Sonarr episode image:', url, sonarrEp.title, img.coverType);
-                                              return <img src={url} alt={sonarrEp.title} className="episode-thumb" />;
-                                            }
-                                          }
-                                          // Fallback: use Sonarr series images (poster/banner)
-                                          if (sonarrEp.seriesImages && Array.isArray(sonarrEp.seriesImages)) {
-                                            const img = sonarrEp.seriesImages.find((img: any) => img.coverType === 'poster')
-                                              || sonarrEp.seriesImages.find((img: any) => img.coverType === 'banner')
-                                              || sonarrEp.seriesImages[0];
-                                            if (img && (img.remoteUrl || img.url)) {
-                                              const url = img.remoteUrl || img.url;
-                                              console.log('Sonarr series fallback image:', url, sonarrEp.title, img.coverType);
-                                              return <img src={url} alt={sonarrEp.title} className="episode-thumb" />;
-                                            }
-                                          }
-                                          console.log('No thumbnail found for episode:', sonarrEp.title);
-                                          return <div className="episode-thumb placeholder-thumb"><Tv className="w-5 h-5" /></div>;
-                                        })()}
-                                        <span className="episode-title">{sonarrEp.title}</span>
-                                        {plexEp && plexEp.duration && (
-                                          <span className="episode-duration">{formatDuration(plexEp.duration)}</span>
-                                        )}
-                                        {/* Play button only if downloaded */}
-                                        {isDownloaded && <span className="episode-play"><Play className="w-5 h-5" /></span>}
-                                      </div>
-                                      {(plexEp && plexEp.summary) || sonarrEp.overview ? (
-                                        <div className="episode-summary" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>{plexEp?.summary || sonarrEp.overview}</div>
-                                      ) : null}
-                                    </button>
-                                    {!isDownloaded && sonarrSeriesId && (
-                                      <button
-                                        className="download-episode-btn"
-                                        disabled={!!downloading[sonarrEp.id]}
-                                        onClick={async () => {
-                                          setDownloading(d => ({ ...d, [sonarrEp.id]: true }));
-                                          try {
-                                            await sonarrService?.searchEpisode(sonarrEp.id);
-                                          } finally {
-                                            setDownloading(d => ({ ...d, [sonarrEp.id]: false }));
-                                          }
-                                        }}
-                                      >
-                                        <Download className="w-5 h-5" /> Download
-                                      </button>
+                                <div key={ep.id} className={`episode-row${ep.hasFile ? ' downloaded' : ''}`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                                  <div className="episode-thumb">
+                                    {thumb ? (
+                                      <img src={thumb} alt={`Episode ${ep.episodeNumber}`} />
+                                    ) : (
+                                      <div className="thumb-placeholder"><Tv className="w-6 h-6" /></div>
                                     )}
                                   </div>
-                                </li>
+                                  <div className="episode-details-flex">
+                                    <div className="episode-title-row-flex">
+                                      <span className="episode-number-badge">{ep.episodeNumber}</span>
+                                      <span className="episode-title">{ep.title || `Episode ${ep.episodeNumber}`}</span>
+                                      <div className="episode-title-actions">
+                                        {ep.hasFile ? (
+                                          <>
+                                            <button className="episode-play-btn" title="Play Episode">
+                                              <Play className="w-5 h-5" />
+                                            </button>
+                                            <span className="downloaded-label">Downloaded</span>
+                                          </>
+                                        ) : (
+                                          <button
+                                            className="download-episode-btn"
+                                            disabled={!!downloading[ep.id]}
+                                            onClick={async () => {
+                                              setDownloading(d => ({ ...d, [ep.id]: true }));
+                                              try {
+                                                console.log('Download Episode button clicked', { sonarrService, ep });
+                                                if (sonarrService) {
+                                                  await setSonarrEpisodeMonitored(sonarrService, ep.id, true);
+                                                  await sonarrService.searchEpisode(ep.id);
+                                                }
+                                              } finally {
+                                                setDownloading(d => ({ ...d, [ep.id]: false }));
+                                              }
+                                            }}
+                                          >
+                                            <Download className="w-4 h-4" />
+                                            {downloading[ep.id] ? 'Downloading...' : 'Download'}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="episode-meta">
+                                      <span>S{seasonNum}E{ep.episodeNumber}</span>
+                                      {ep.airDate && <span> | Air Date: {ep.airDate}</span>}
+                                      {ep.runtime && <span> | {ep.runtime} min</span>}
+                                    </div>
+                                    {ep.overview && <div className="episode-overview">{ep.overview}</div>}
+                                  </div>
+                                </div>
                               );
                             })}
-                          </ul>
+                          </div>
                         )}
                       </div>
                     );
-                    {/* Simple Modal for Season Download Confirmation */ }
-                    {
-                      showSeasonModal && seasonToDownload !== null && (
-                        <div className="modal-overlay" onClick={() => setShowSeasonModal(false)}>
-                          <div className="modal-content" onClick={e => e.stopPropagation()}>
-                            <div className="modal-header">
-                              <h2>Download Entire Season?</h2>
-                              <button onClick={() => setShowSeasonModal(false)} className="close-button">✕</button>
-                            </div>
-                            <div className="modal-body">
-                              <p>Are you sure you want to search and download all episodes for this season?</p>
-                              <button
-                                className="download-season-btn confirm"
-                                disabled={typeof seasonToDownload !== 'number' ? true : !!downloadingSeason[seasonToDownload as number]}
-                                onClick={async () => {
-                                  if (seasonToDownload === null) return;
-                                  setDownloadingSeason(d => ({ ...d, [seasonToDownload]: true }));
-                                  try {
-                                    // Find all episode IDs for this season
-                                    const episodeIds = sonarrEpisodes.filter((ep: any) => ep.seasonNumber === seasonToDownload && !ep.hasFile).map((ep: any) => ep.id);
-                                    if (sonarrService && episodeIds.length > 0) {
-                                      await sonarrService.searchEpisodes(episodeIds);
-                                    }
-                                  } finally {
-                                    setDownloadingSeason(d => ({ ...d, [seasonToDownload]: false }));
-                                    setShowSeasonModal(false);
-                                  }
-                                }}
-                              >
-                                <Download className="w-5 h-5" /> Confirm Download
-                              </button>
-                            </div>
-                          </div>
+                  })}
+                  {showSeasonModal && seasonToDownload !== null && (
+                    <div className="modal-overlay" onClick={() => setShowSeasonModal(false)}>
+                      <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                          <h2>Download Entire Season?</h2>
+                          <button onClick={() => setShowSeasonModal(false)} className="close-button">✕</button>
                         </div>
-                      )
-                    }
-                  });
-                })()}
-              </div>
-            )}
+                        <div className="modal-body">
+                          <p>Are you sure you want to search and download all episodes for this season?</p>
+                          <button
+                            className="download-season-btn confirm"
+                            disabled={typeof seasonToDownload !== 'number' ? true : !!downloadingSeason[seasonToDownload as number]}
+                            onClick={async () => {
+                              if (seasonToDownload === null) return;
+                              setDownloadingSeason(d => ({ ...d, [seasonToDownload]: true }));
+                              try {
+                                alert('Download Season handler triggered!');
+                                console.log('Download Season button clicked', { sonarrService, sonarrSeriesId, seasonToDownload });
+                                // Always mark the season as monitored in Sonarr before triggering download
+                                if (sonarrService && sonarrSeriesId !== null && seasonToDownload !== null) {
+                                  await setSonarrSeasonMonitored(sonarrService, sonarrSeriesId, seasonToDownload, true);
+                                }
+                                // Find all episode IDs for this season
+                                const episodeIds = sonarrEpisodes.filter((ep: any) => ep.seasonNumber === seasonToDownload && !ep.hasFile).map((ep: any) => ep.id);
+                                console.log('Episode IDs to download:', episodeIds);
+                                if (sonarrService && episodeIds.length > 0) {
+                                  // Ensure all episodes in this season are monitored
+                                  for (const epId of episodeIds) {
+                                    await setSonarrEpisodeMonitored(sonarrService, epId, true);
+                                  }
+                                  await sonarrService.searchEpisodes(episodeIds);
+                                }
+                              } finally {
+                                setDownloadingSeason(d => ({ ...d, [seasonToDownload]: false }));
+                                setShowSeasonModal(false);
+                              }
+                            }}
+                          >
+                            <Download className="w-5 h-5" /> Confirm Download
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {media?.actors && media.actors.length > 0 && (
               <div className="info-section">
