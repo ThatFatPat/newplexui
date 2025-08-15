@@ -1,3 +1,26 @@
+export interface SonarrConfig {
+  url: string;
+  apiKey: string;
+}
+
+export interface SonarrImage {
+  coverType: string;
+  url: string;
+  remoteUrl: string;
+}
+
+export interface SonarrSeason {
+  seasonNumber: number;
+  monitored: boolean;
+  statistics: {
+    episodeCount: number;
+    episodeFileCount: number;
+    totalEpisodeCount: number;
+    sizeOnDisk: number;
+    percentOfEpisodes: number;
+  };
+}
+
 export interface SonarrSeries {
   id: number;
   title: string;
@@ -17,24 +40,6 @@ export interface SonarrSeries {
   images: SonarrImage[];
 }
 
-export interface SonarrSeason {
-  seasonNumber: number;
-  monitored: boolean;
-  statistics: {
-    episodeCount: number;
-    episodeFileCount: number;
-    totalEpisodeCount: number;
-    sizeOnDisk: number;
-    percentOfEpisodes: number;
-  };
-}
-
-export interface SonarrImage {
-  coverType: string;
-  url: string;
-  remoteUrl: string;
-}
-
 export interface SonarrQueueItem {
   id: number;
   seriesId: number;
@@ -52,11 +57,6 @@ export interface SonarrQueueItem {
   sizeleft: number;
   estimatedCompletionTime: string;
   downloadId: string;
-}
-
-export interface SonarrConfig {
-  url: string;
-  apiKey: string;
 }
 
 class SonarrService {
@@ -79,11 +79,11 @@ class SonarrService {
     };
 
     try {
-      const response = await fetch(url, { 
+      const response = await fetch(url, {
         headers,
-        ...options 
+        ...options
       });
-      
+
       if (!response.ok) {
         throw new Error(`Sonarr API error: ${response.status} ${response.statusText}`);
       }
@@ -95,12 +95,59 @@ class SonarrService {
     }
   }
 
+  async searchEpisodes(episodeIds: number[]): Promise<any> {
+    if (!episodeIds.length) return;
+    try {
+      return await this.makeRequest('/command', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'EpisodeSearch', episodeIds }),
+      });
+    } catch (error) {
+      console.error('Failed to trigger Sonarr batch episode search:', error);
+      throw error;
+    }
+  }
+
   async getSeries(): Promise<SonarrSeries[]> {
     try {
       return await this.makeRequest('/series');
     } catch (error) {
       console.error('Failed to fetch Sonarr series:', error);
       return [];
+    }
+  }
+
+  async getEpisodes(seriesId: number): Promise<any[]> {
+    try {
+      return await this.makeRequest(`/episode?seriesId=${seriesId}`);
+    } catch (error) {
+      console.error('Failed to fetch Sonarr episodes:', error);
+      return [];
+    }
+  }
+
+  async getEpisodeFile(episodeFileId: number): Promise<any | null> {
+    if (!episodeFileId) return null;
+    try {
+      return await this.makeRequest(`/episodefile/${episodeFileId}`);
+    } catch (error) {
+      console.error('Failed to fetch Sonarr episode file:', error);
+      return null;
+    }
+  }
+
+  async searchEpisode(episodeId: number): Promise<any> {
+    try {
+      return await this.makeRequest(`/command`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'EpisodeSearch',
+          episodeIds: [episodeId],
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to trigger Sonarr episode search:', error);
+      throw error;
     }
   }
 

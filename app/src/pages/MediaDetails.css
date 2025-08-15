@@ -1,3 +1,102 @@
+/* Season Header Row */
+.season-header-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+/* Download Season Button */
+.download-season-btn {
+  background: #f59e42;
+  color: #222;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(245, 158, 66, 0.15);
+  transition: background 0.2s, color 0.2s;
+}
+
+.download-season-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.download-season-btn.confirm {
+  background: #2563eb;
+  color: #fff;
+}
+
+.download-season-btn.confirm:disabled {
+  background: #6b7280;
+  color: #fff;
+}
+
+.download-episode-btn {
+  margin-left: 16px;
+  background: #f59e42;
+  color: #222;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+
+.download-episode-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.episode-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.episode-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 16px;
+  background: #222;
+  flex-shrink: 0;
+  display: block;
+}
+
+.placeholder-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #23272f 60%, #2c313a 100%);
+  border-radius: 6px;
+  margin-right: 16px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 1.2rem;
+  color: #888;
+}
+
+.episode-play {
+  margin-left: 16px;
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+}
+
 /* Media Details Page */
 .media-details-page {
   background-color: #111827;
@@ -281,6 +380,108 @@
   margin: 0;
 }
 
+/* --- Seasons & Episodes List --- */
+.seasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.details-seasons-list {
+  background: rgba(31, 41, 55, 0.7);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.seasons-list h2 {
+  color: #fff;
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.season-block {
+  margin-bottom: 16px;
+}
+
+.season-toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.season-toggle:hover {
+  color: #60a5fa;
+}
+
+.episodes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.episode-item {
+  background: rgba(55, 65, 81, 0.7);
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: background 0.2s;
+}
+
+.episode-item:hover {
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.episode-link {
+  background: none;
+  border: none;
+  color: #fff;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.episode-main-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.episode-title {
+  flex: 1;
+}
+
+.episode-duration {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.episode-summary {
+  color: #d1d5db;
+  font-size: 14px;
+  margin-top: 2px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
 /* Sidebar */
 .sidebar {
   display: flex;
@@ -384,52 +585,53 @@
     grid-template-columns: 1fr;
     gap: 32px;
   }
-  
+
   .hero-content {
     flex-direction: column;
     align-items: flex-start;
     gap: 32px;
   }
-  
+
   .hero-left {
     flex-direction: column;
     align-items: flex-start;
     gap: 24px;
   }
-  
+
   .media-poster {
     width: 150px;
     height: 225px;
   }
-  
+
   .media-title {
     font-size: 36px;
   }
 }
 
 @media (max-width: 768px) {
+
   .details-header,
   .hero-content,
   .details-content {
     padding: 24px 16px;
   }
-  
+
   .hero-section {
     min-height: 400px;
   }
-  
+
   .media-title {
     font-size: 28px;
   }
-  
+
   .media-meta {
     gap: 16px;
   }
-  
+
   .hero-right {
     align-items: stretch;
   }
-  
+
   .play-button,
   .add-button {
     width: 100%;

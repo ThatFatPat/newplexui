@@ -15,7 +15,7 @@ export interface PlexMedia {
   addedAt?: string;
   updatedAt?: string;
   genres?: string[];
-  actors?: string[];
+  actors?: { id: number; tag: string; thumb: string; role: string; }[];
   director?: string;
   studio?: string;
   contentRating?: string;
@@ -23,6 +23,8 @@ export interface PlexMedia {
   userRating?: number;
   mediaType?: string;
   guid?: string;
+  tagline?: string;
+  originallyAvailableAt?: string;
 }
 
 export interface PlexLibrary {
@@ -291,4 +293,18 @@ export interface User {
     language: string;
     quality: string;
   };
+}
+
+export interface PlexSeason {
+  id: number;
+  title: string;
+  episodes: PlexEpisode[];
+}
+
+export interface PlexEpisode {
+  id: number;
+  title: string;
+  duration?: number;
+  summary?: string;
+  thumb?: string;
 }

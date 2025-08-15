@@ -1,10 +1,11 @@
-
+// ...existing code...
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, Star, Clock, ArrowLeft, Plus, Eye, Film, Tv, Calendar, Download } from 'lucide-react';
+import { Play, Star, Clock, ArrowLeft, Plus, Eye, Film, Tv, Calendar, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PlexMedia, PlexSeason } from '../types';
 import { useConfig } from '../contexts/ConfigContext';
 import PlexService from '../services/plexService';
+import SonarrService from '../services/sonarrService';
 import './MediaDetails.css';
 
 interface MediaDetailsParams {
@@ -13,6 +14,9 @@ interface MediaDetailsParams {
 }
 
 const MediaDetails = () => {
+  const [showSeasonModal, setShowSeasonModal] = useState(false);
+  const [seasonToDownload, setSeasonToDownload] = useState<number | null>(null);
+  const [downloadingSeason, setDownloadingSeason] = useState<{ [seasonNum: number]: boolean }>({});
   const { id } = useParams<MediaDetailsParams>();
   const [loading, setLoading] = useState(false);
   const [media, setMedia] = useState<PlexMedia | null>(null);
@@ -29,67 +33,93 @@ const MediaDetails = () => {
   }, [config.plex]);
 
   const [seasons, setSeasons] = useState<PlexSeason[]>([]);
+  // Allow multiple expanded seasons
+  const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
+  const [sonarrEpisodes, setSonarrEpisodes] = useState<any[]>([]);
+  const [sonarrSeriesId, setSonarrSeriesId] = useState<number | null>(null);
+  const [downloading, setDownloading] = useState<{ [epId: number]: boolean }>({});
 
   useEffect(() => {
     if (!id || !plexService) return;
-
     const fetchMediaDetails = async () => {
       setLoading(true);
       try {
         const mediaData = await plexService.getMediaDetails(parseInt(id));
         setMedia(mediaData);
-
-        // Fetch seasons and episodes if it's a show
         if (mediaData?.type === 'show') {
-          console.log("Fetching Seasons and Episodes for ", mediaData.title);
-          const libraryData: any = await plexService.getLibrary();
+          const seasonsData = await plexService.getShowSeasons(parseInt(id));
+          setSeasons(seasonsData);
         }
       } catch (error: any) {
         console.error('Error fetching media details:', error);
       } finally {
         setLoading(false);
-      };
+      }
     };
+    fetchMediaDetails();
+  }, [id, plexService]);
+  const sonarrService = useMemo(() => {
+    if (config.sonarr?.apiKey && config.sonarr?.host && config.sonarr?.port && config.sonarr?.scheme) {
+      return new SonarrService({
+        url: `${config.sonarr.scheme}://${config.sonarr.host}:${config.sonarr.port}`,
+        apiKey: config.sonarr.apiKey
+      });
+    }
+    return null;
+  }, [config.sonarr]);
 
-    const fetchSeasons = async () => {
-      if (!id || !plexService) return;
+  useEffect(() => {
+    if (!id || !plexService) return;
+    const fetchMediaDetails = async () => {
       setLoading(true);
       try {
-        const showChildren: any = await plexService.getShowChildren(parseInt(id));
-        console.log("Show Children", showChildren);
+        const mediaData = await plexService.getMediaDetails(parseInt(id));
+        setMedia(mediaData);
+        if (mediaData?.type === 'show') {
+          const seasonsData = await plexService.getShowSeasons(parseInt(id));
+          setSeasons(seasonsData);
+          // Try to find matching Sonarr series
+          if (sonarrService) {
+            let sonarrSeries = null;
+            const allSeries = await sonarrService.getSeries();
+            if (mediaData.guid && mediaData.guid.startsWith('tvdb://')) {
+              const tvdbId = parseInt(mediaData.guid.replace('tvdb://', ''));
+              sonarrSeries = allSeries.find((s: any) => s.tvdbId === tvdbId);
+            }
+            if (!sonarrSeries) {
+              sonarrSeries = allSeries.find((s: any) => s.title.toLowerCase() === mediaData.title.toLowerCase());
+            }
+            if (sonarrSeries) {
+              setSonarrSeriesId(sonarrSeries.id);
+              const episodes = await sonarrService.getEpisodes(sonarrSeries.id);
+              // Fetch episodeFile for each episode if needed
+              const episodesWithFiles = await Promise.all(episodes.map(async (ep: any) => {
+                let episodeFile = null;
+                if (ep.episodeFileId) {
+                  episodeFile = await sonarrService.getEpisodeFile(ep.episodeFileId);
+                }
+                return {
+                  ...ep,
+                  episodeFile,
+                  seriesImages: sonarrSeries.images || [],
+                };
+              }));
+              setSonarrEpisodes(episodesWithFiles);
+            }
+          }
+        }
       } catch (error: any) {
-        console.error('Error fetching show children:', error);
+        console.error('Error fetching media details:', error);
       } finally {
         setLoading(false);
       }
-    }
-
+    };
     fetchMediaDetails();
-  }, [id, plexService]);
-
-  useEffect(() => {
-    fetchSeasons();
-  }, [id, plexService]);
-
-  const fetchSeasons = async () => {
-    if (!id || !plexService) return;
-    setLoading(true);
-    try {
-      const showChildren: any = await plexService.getShowChildren(parseInt(id));
-      console.log("Show Children", showChildren);
-    } catch (error: any) {
-      console.error('Error fetching show children:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchSeasons();
-  }, [id, plexService]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, plexService, sonarrService]);
 
   const handleRefresh = useCallback(async () => {
-
+    // Implement refresh logic here
   }, []);
 
   const formatDuration = (ms: number) => {
@@ -111,7 +141,10 @@ const MediaDetails = () => {
         </div>
       </div>
     );
-  };
+  }
+
+  // --- HERO SECTION RESTORED ---
+  // Transparent background, no banner fallback
 
   return (
     <div className="media-details-page">
@@ -135,21 +168,14 @@ const MediaDetails = () => {
         </div>
       </div>
 
-      {/* Hero Section */}
+      {/* Hero Section Restored */}
       <div className="hero-section">
-        <div className="hero-background">
+        <div className="hero-background" style={{ background: 'transparent' }}>
           {media?.banner ? (
             <img src={media.banner} alt={media.title} className="full-banner" />
-          ) : (
-            <div className="placeholder-banner">
-              {media.type === 'movie' ? <Film className="w-24 h-24" /> : <Tv className="w-24 h-24" />}
-            </div>
-          )}
+          ) : null}
         </div>
-
-        {/* Hero Content (Poster, Info, Actions) */}
         <div className="hero-content">
-          {/* Left Section (Poster, Media Info) */}
           <div className="hero-left">
             <div className="media-poster">
               {media?.thumb ? (
@@ -160,16 +186,12 @@ const MediaDetails = () => {
                 </div>
               )}
             </div>
-
-            {/* Media Info (Type, Title, Meta, Genres) */}
             <div className="media-info">
               <div className="media-type">
                 {media?.type === 'movie' ? <Film className="w-5 h-5" /> : <Tv className="w-5 h-5" />}
                 <span>{media.type === 'movie' ? 'Movie' : 'TV Show'}</span>
               </div>
-
               <h1 className="media-title">{media?.title}</h1>
-
               <div className="media-meta">
                 {media?.year && (
                   <div className="meta-item">
@@ -177,21 +199,18 @@ const MediaDetails = () => {
                     <span>{media.year}</span>
                   </div>
                 )}
-
                 {media?.duration && (
                   <div className="meta-item">
                     <Clock className="w-4 h-4" />
                     <span>{formatDuration(media.duration)}</span>
                   </div>
                 )}
-
                 {media?.rating && (
                   <div className="meta-item">
                     <Star className="w-4 h-4 fill-current" />
                     <span>{media.rating}</span>
                   </div>
                 )}
-
                 {media?.viewCount !== undefined && (
                   <div className="meta-item">
                     <Eye className="w-4 h-4" />
@@ -199,7 +218,6 @@ const MediaDetails = () => {
                   </div>
                 )}
               </div>
-
               {media?.genres && media.genres.length > 0 && (
                 <div className="genres">
                   {media.genres.map((genre, index) => (
@@ -209,14 +227,13 @@ const MediaDetails = () => {
               )}
             </div>
           </div>
-
-          {/* Right Section (Play Button, Add to List Button) */}
           <div className="hero-right">
-            <button className="play-button">
-              <Play className="w-6 h-6" />
-              <span>Play</span>
-            </button>
-
+            {media?.type === 'movie' && (
+              <button className="play-button">
+                <Play className="w-6 h-6" />
+                <span>Play</span>
+              </button>
+            )}
             <button className="add-button">
               <Plus className="w-5 h-5" />
               <span>Add to List</span>
@@ -258,6 +275,210 @@ const MediaDetails = () => {
               <div className="info-section">
                 <h3>Last Watched</h3>
                 <p>{new Date(media.lastViewedAt).toLocaleDateString()}</p>
+              </div>
+            )}
+
+            {/* --- SEASONS/EPISODES LIST --- */}
+            {media?.type === 'show' && sonarrEpisodes && sonarrEpisodes.length > 0 && (
+              <div className="seasons-list details-seasons-list">
+                <h2>Seasons & Episodes</h2>
+                {/* Build a union of all season numbers from Sonarr and Plex */}
+                {(() => {
+                  // Get all Sonarr season numbers
+                  const sonarrSeasonNumbers = Array.from(new Set(sonarrEpisodes.map((ep: any) => ep.seasonNumber)));
+                  // Get all Plex season numbers (from Plex seasons)
+                  const plexSeasonNumbers = seasons.map((season) => {
+                    let seasonNum = null;
+                    if (typeof season.title === 'string') {
+                      const match = season.title.match(/(\d+)/);
+                      if (match) seasonNum = parseInt(match[1]);
+                    }
+                    if (!seasonNum) seasonNum = season.id;
+                    return seasonNum;
+                  });
+                  // Union of all season numbers
+                  const allSeasonNumbers = Array.from(new Set([...sonarrSeasonNumbers, ...plexSeasonNumbers])).sort((a, b) => a - b);
+                  return allSeasonNumbers.map((seasonNum) => {
+                    // Find Plex season (if any) for this seasonNum
+                    const plexSeason = seasons.find((season) => {
+                      let sNum = null;
+                      if (typeof season.title === 'string') {
+                        const match = season.title.match(/(\d+)/);
+                        if (match) sNum = parseInt(match[1]);
+                      }
+                      if (!sNum) sNum = season.id;
+                      return sNum === seasonNum;
+                    });
+                    // Get all Sonarr episodes for this season
+                    const sonarrSeasonEpisodes = sonarrEpisodes.filter((sEp: any) => sEp.seasonNumber === seasonNum);
+                    // Map Plex episodes by episode number for easier lookup
+                    const plexEpByNumber = new Map();
+                    if (plexSeason) {
+                      plexSeason.episodes.forEach((ep, idx) => {
+                        // Try to extract episode number from title, fallback to index+1
+                        let epNum = null;
+                        const match = ep.title.match(/Episode (\d+)/i);
+                        if (match) epNum = parseInt(match[1]);
+                        if (!epNum) epNum = idx + 1;
+                        plexEpByNumber.set(epNum, ep);
+                      });
+                    }
+                    const isExpanded = expandedSeasons.has(seasonNum);
+                    // Determine if all episodes are unavailable (not downloaded)
+                    const allUndownloaded = sonarrSeasonEpisodes.length > 0 && sonarrSeasonEpisodes.every((ep: any) => !ep.hasFile);
+                    return (
+                      <div key={seasonNum} className="season-block">
+                        <div className="season-header-row">
+                          <button
+                            className="season-toggle"
+                            onClick={() => {
+                              setExpandedSeasons(prev => {
+                                const next = new Set(prev);
+                                if (next.has(seasonNum)) {
+                                  next.delete(seasonNum);
+                                } else {
+                                  next.add(seasonNum);
+                                }
+                                return next;
+                              });
+                            }}
+                          >
+                            {isExpanded ? <ChevronDown /> : <ChevronRight />}
+                            <span>{plexSeason ? plexSeason.title : `Season ${seasonNum}`}</span>
+                          </button>
+                          {/* Show season download button if all episodes are unavailable */}
+                          {allUndownloaded && sonarrSeriesId && (
+                            <button
+                              className="download-season-btn"
+                              disabled={!!downloadingSeason[seasonNum]}
+                              onClick={e => {
+                                e.stopPropagation();
+                                setSeasonToDownload(seasonNum);
+                                setShowSeasonModal(true);
+                              }}
+                            >
+                              <Download className="w-5 h-5" /> Download Season
+                            </button>
+                          )}
+                        </div>
+                        {isExpanded && (
+                          <ul className="episodes-list">
+                            {sonarrSeasonEpisodes.map((sonarrEp: any) => {
+                              const plexEp = plexEpByNumber.get(sonarrEp.episodeNumber);
+                              const isDownloaded = !!sonarrEp.hasFile;
+                              return (
+                                <li key={sonarrEp.id} className={`episode-item${isDownloaded ? '' : ' undownloaded'}`}>
+                                  <div className="episode-link-row">
+                                    <button className="episode-link">
+                                      <div className="episode-main-row">
+                                        {/* Thumbnail */}
+                                        {(() => {
+                                          // Debug: log full episode objects
+                                          console.log('plexEp:', plexEp, 'sonarrEp:', sonarrEp);
+                                          // Try Plex thumb, then Sonarr images (screenshot, poster, banner), then fallback
+                                          if (plexEp && plexEp.thumb) {
+                                            console.log('Plex episode thumb:', plexEp.thumb, sonarrEp.title);
+                                            return <img src={plexEp.thumb} alt={sonarrEp.title} className="episode-thumb" />;
+                                          }
+                                          if (sonarrEp.images && Array.isArray(sonarrEp.images)) {
+                                            // Try screenshot, then poster, then banner
+                                            const img = sonarrEp.images.find((img: any) => img.coverType === 'screenshot')
+                                              || sonarrEp.images.find((img: any) => img.coverType === 'poster')
+                                              || sonarrEp.images.find((img: any) => img.coverType === 'banner')
+                                              || sonarrEp.images[0];
+                                            if (img && (img.remoteUrl || img.url)) {
+                                              const url = img.remoteUrl || img.url;
+                                              console.log('Sonarr episode image:', url, sonarrEp.title, img.coverType);
+                                              return <img src={url} alt={sonarrEp.title} className="episode-thumb" />;
+                                            }
+                                          }
+                                          // Fallback: use Sonarr series images (poster/banner)
+                                          if (sonarrEp.seriesImages && Array.isArray(sonarrEp.seriesImages)) {
+                                            const img = sonarrEp.seriesImages.find((img: any) => img.coverType === 'poster')
+                                              || sonarrEp.seriesImages.find((img: any) => img.coverType === 'banner')
+                                              || sonarrEp.seriesImages[0];
+                                            if (img && (img.remoteUrl || img.url)) {
+                                              const url = img.remoteUrl || img.url;
+                                              console.log('Sonarr series fallback image:', url, sonarrEp.title, img.coverType);
+                                              return <img src={url} alt={sonarrEp.title} className="episode-thumb" />;
+                                            }
+                                          }
+                                          console.log('No thumbnail found for episode:', sonarrEp.title);
+                                          return <div className="episode-thumb placeholder-thumb"><Tv className="w-5 h-5" /></div>;
+                                        })()}
+                                        <span className="episode-title">{sonarrEp.title}</span>
+                                        {plexEp && plexEp.duration && (
+                                          <span className="episode-duration">{formatDuration(plexEp.duration)}</span>
+                                        )}
+                                        {/* Play button only if downloaded */}
+                                        {isDownloaded && <span className="episode-play"><Play className="w-5 h-5" /></span>}
+                                      </div>
+                                      {(plexEp && plexEp.summary) || sonarrEp.overview ? (
+                                        <div className="episode-summary" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>{plexEp?.summary || sonarrEp.overview}</div>
+                                      ) : null}
+                                    </button>
+                                    {!isDownloaded && sonarrSeriesId && (
+                                      <button
+                                        className="download-episode-btn"
+                                        disabled={!!downloading[sonarrEp.id]}
+                                        onClick={async () => {
+                                          setDownloading(d => ({ ...d, [sonarrEp.id]: true }));
+                                          try {
+                                            await sonarrService?.searchEpisode(sonarrEp.id);
+                                          } finally {
+                                            setDownloading(d => ({ ...d, [sonarrEp.id]: false }));
+                                          }
+                                        }}
+                                      >
+                                        <Download className="w-5 h-5" /> Download
+                                      </button>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                    {/* Simple Modal for Season Download Confirmation */ }
+                    {
+                      showSeasonModal && seasonToDownload !== null && (
+                        <div className="modal-overlay" onClick={() => setShowSeasonModal(false)}>
+                          <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                              <h2>Download Entire Season?</h2>
+                              <button onClick={() => setShowSeasonModal(false)} className="close-button">✕</button>
+                            </div>
+                            <div className="modal-body">
+                              <p>Are you sure you want to search and download all episodes for this season?</p>
+                              <button
+                                className="download-season-btn confirm"
+                                disabled={typeof seasonToDownload !== 'number' ? true : !!downloadingSeason[seasonToDownload as number]}
+                                onClick={async () => {
+                                  if (seasonToDownload === null) return;
+                                  setDownloadingSeason(d => ({ ...d, [seasonToDownload]: true }));
+                                  try {
+                                    // Find all episode IDs for this season
+                                    const episodeIds = sonarrEpisodes.filter((ep: any) => ep.seasonNumber === seasonToDownload && !ep.hasFile).map((ep: any) => ep.id);
+                                    if (sonarrService && episodeIds.length > 0) {
+                                      await sonarrService.searchEpisodes(episodeIds);
+                                    }
+                                  } finally {
+                                    setDownloadingSeason(d => ({ ...d, [seasonToDownload]: false }));
+                                    setShowSeasonModal(false);
+                                  }
+                                }}
+                              >
+                                <Download className="w-5 h-5" /> Confirm Download
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
+                  });
+                })()}
               </div>
             )}
 
