@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Grid, List, Play, Eye, Star, Clock, Film, Tv, Download, AlertCircle, Folder, Download as QueueIcon, RefreshCw, Pause, CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { Search, Grid, List, Play, Eye, Star, Clock, Film, Tv, Download, AlertCircle, Folder, Download as QueueIcon, RefreshCw, Pause, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useConfig } from '../contexts/ConfigContext';
 import PlexService from '../services/plexService';
 import SonarrService from '../services/sonarrService';
@@ -131,6 +131,8 @@ const Library = () => {
     } catch (error) {
       console.error('Error fetching download queue:', error);
       setDownloadQueue([]);
+    } finally {
+      setLoading(false);
     }
   }, [sonarrService, radarrService]);
 
@@ -151,6 +153,15 @@ const Library = () => {
     );
   }, [getCurrentItems, searchQuery]);
 
+    const sortedItems = useMemo(() => {
+        const items = getCurrentItems();
+        return [...items].sort((a, b) => {
+            const titleA = a.title?.toLowerCase() || '';
+            const titleB = b.title?.toLowerCase() || '';
+            return titleA.localeCompare(titleB);
+        });
+    }, [getCurrentItems]);
+
   const getSourceIcon = useCallback((source: string) => {
     switch (source) {
       case 'plex':
@@ -164,7 +175,7 @@ const Library = () => {
     }
   }, []);
 
-  const getStatusIcon = useCallback((status: string) => {
+  const getStatusIcon = useCallback((status: string | undefined) => {
     switch (status?.toLowerCase()) {
       case 'downloading':
         return <Download className="w-4 h-4 text-blue-500 animate-pulse" />;
@@ -178,16 +189,6 @@ const Library = () => {
         return <Download className="w-4 h-4 text-gray-500" />;
     }
   }, []);
-
-  const handleItemClick = useCallback((item: LibraryItem) => {
-    if (activeTab === 'plex') {
-      // Navigate to media details for Plex items
-      window.location.href = `/media/${item.id}`;
-    } else {
-      // For download queue items, we could show more details or actions
-      console.log('Download queue item clicked:', item);
-    }
-  }, [activeTab]);
 
   const handleRefresh = useCallback(async () => {
     setLoading(true);
@@ -287,11 +288,11 @@ const Library = () => {
         {activeTab === 'plex' ? (
           // Plex Library View
           <div className={`plex-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
-            {filteredItems.map((item) => (
-              <div
+            {sortedItems.map((item) => (
+              <Link
+                to={`/media/${item.type}/${item.id}`}
                 key={item.id}
                 className="media-card"
-                onClick={() => handleItemClick(item)}
               >
                 <div className="card-image">
                   {item.thumb ? (
@@ -322,7 +323,7 @@ const Library = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (

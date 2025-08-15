@@ -1,284 +1,285 @@
 /* Library Page */
 .library-page {
-  padding: 24px;
-  background-color: #111827;
-  min-height: 100vh;
+    padding: 24px;
+    background-color: #111827;
+    min-height: 100vh;
 }
 
 /* Header */
 .library-header {
-  margin-bottom: 32px;
+    margin-bottom: 32px;
 }
 
 .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .page-title {
-  font-size: 32px;
-  font-weight: bold;
-  color: white;
-  margin: 0;
+    font-size: 32px;
+    font-weight: bold;
+    color: white;
+    margin: 0;
 }
 
 .refresh-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .refresh-button:hover:not(:disabled) {
-  background-color: #1d4ed8;
+    background-color: #1d4ed8;
 }
 
 .refresh-button:disabled {
-  background-color: #6b7280;
-  cursor: not-allowed;
+    background-color: #6b7280;
+    cursor: not-allowed;
 }
 
 /* Tabs */
 .tabs-container {
-  margin-bottom: 24px;
+    margin-bottom: 24px;
 }
 
 .tabs {
-  display: flex;
-  background-color: #1f2937;
-  border-radius: 12px;
-  padding: 4px;
-  width: fit-content;
+    display: flex;
+    background-color: #1f2937;
+    border-radius: 12px;
+    padding: 4px;
+    width: fit-content;
 }
 
 .tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 24px;
-  border: none;
-  background: none;
-  color: #9ca3af;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    border: none;
+    background: none;
+    color: #9ca3af;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
 }
 
 .tab:hover {
-  color: white;
-  background-color: #374151;
+    color: white;
+    background-color: #374151;
 }
 
 .tab.active {
-  background-color: #2563eb;
-  color: white;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    background-color: #2563eb;
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .tab-count {
-  background-color: #374151;
-  color: #d1d5db;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+    background-color: #374151;
+    color: #d1d5db;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .tab.active .tab-count {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
 }
 
 /* Controls */
 .controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  gap: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
 }
 
 .search-container {
-  flex: 1;
-  max-width: 500px;
-  position: relative;
+    flex: 1;
+    max-width: 500px;
+    position: relative;
 }
 
 .search-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6b7280;
-  pointer-events: none;
+    position: absolute;
+    left: 10px; /* Adjust as needed */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6B7280;
+    pointer-events: none;
+    opacity: 0.7;
 }
 
 .search-input {
-  width: 100%;
-  padding: 16px 16px 16px 48px;
-  background-color: #1f2937;
-  border: 1px solid #374151;
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-  transition: all 0.2s;
+    width: 100%;
+    padding: 16px 16px 16px 48px;
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    transition: all 0.2s;
 }
 
 .search-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .search-input::placeholder {
-  color: #6b7280;
+    color: #6b7280;
 }
 
 .view-controls {
-  display: flex;
-  gap: 8px;
+    display: flex;
+    gap: 8px;
 }
 
 .view-button {
-  padding: 12px;
-  background-color: #1f2937;
-  border: 1px solid #374151;
-  color: #9ca3af;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
+    padding: 12px;
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    color: #9ca3af;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .view-button:hover {
-  background-color: #374151;
-  color: white;
+    background-color: #374151;
+    color: white;
 }
 
 .view-button.active {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  color: white;
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: white;
 }
 
 /* Content */
 .content {
-  min-height: 400px;
+    min-height: 400px;
 }
 
 /* Plex Grid */
 .plex-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
 }
 
 .plex-grid.list-view {
-  grid-template-columns: 1fr;
+    grid-template-columns: 1fr;
 }
 
 .media-card {
-  background-color: #1f2937;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 1px solid #374151;
+    background-color: #1f2937;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid #374151;
 }
 
 .media-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  border-color: #2563eb;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: #2563eb;
 }
 
 .card-image {
-  position: relative;
-  aspect-ratio: 2/3;
-  overflow: hidden;
+    position: relative;
+    aspect-ratio: 2/3;
+    overflow: hidden;
 }
 
 .card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .placeholder-image {
-  width: 100%;
-  height: 100%;
-  background-color: #374151;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
+    width: 100%;
+    height: 100%;
+    background-color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
 }
 
 .card-overlay {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s;
-  color: white;
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: white;
 }
 
 .media-card:hover .card-overlay {
-  opacity: 1;
+    opacity: 1;
 }
 
 .card-content {
-  padding: 16px;
+    padding: 16px;
 }
 
 .card-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: white;
-  margin: 0 0 8px 0;
-  line-height: 1.3;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
 }
 
 .card-year {
-  color: #9ca3af;
-  margin: 0 0 8px 0;
-  font-size: 14px;
+    color: #9ca3af;
+    margin: 0 0 8px 0;
+    font-size: 14px;
 }
 
 .card-rating {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #fbbf24;
-  font-size: 14px;
-  margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #fbbf24;
+    font-size: 14px;
+    margin-bottom: 8px;
 }
 
 .card-genres {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .genre-tag {
-  background-color: #374151;
-  color: #d1d5db;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
+    background-color: #374151;
+    color: #d1d5db;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 /* Download Queue */
@@ -468,4 +469,52 @@
     align-items: center;
     min-width: auto;
   }
+}
+
+/* Custom styles to fix the library issues */
+@media (min-width: 769px) {
+    .plex-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Reduced panel size in desktop mode */
+    }
+
+    .plex-grid.list-view .media-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 10px;
+    }
+
+    .plex-grid.list-view .card-image {
+        width: 100px;
+        height: 150px;
+        flex-shrink: 0;
+    }
+
+    .plex-grid.list-view .card-content {
+        padding: 10px;
+        flex: 1; /* Take remaining space */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* Center content vertically */
+    }
+
+    .plex-grid.list-view .card-content h3 {
+        margin: 0; /* Remove default margin */
+    }
+}
+
+/* Fixes for the search and icon */
+.search-container {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px; /* Adjust as needed */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6B7280;
+    pointer-events: none;
+    opacity: 0.7;
+    z-index: 1; /* Ensure it's above the input */
 }

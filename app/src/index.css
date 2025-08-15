@@ -16,6 +16,12 @@ body {
   min-height: 100vh;
 }
 
+a:link,
+a:visited,
+a:active {
+  text-decoration: none;
+}
+
 /* Layout */
 .min-h-screen {
   min-height: 100vh;
