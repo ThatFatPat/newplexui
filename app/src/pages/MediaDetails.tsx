@@ -424,23 +424,35 @@ const MediaDetails = () => {
                               let plexEp = null;
                               if (plexSeason && plexSeason.episodes) {
                                 plexEp = plexSeason.episodes.find((pe: any) => pe.index === ep.episodeNumber);
-                                if (plexEp && plexEp.thumb) {
-                                  thumb = plexEp.thumb;
+                              }
+                              {/* Thumbnail */ }
+                              // Debug: log full episode objects
+                              console.log('plexEp:', plexEp, 'sonarrEp:', ep);
+                              // Try Plex thumb, then Sonarr images (screenshot, poster, banner), then fallback
+                              if (plexEp && plexEp.thumb) {
+                                console.log('Plex episode thumb:', plexEp.thumb, ep.title);
+                              }
+                              if (ep.images && Array.isArray(ep.images)) {
+                                // Try screenshot, then poster, then banner
+                                const img = ep.images.find((img: any) => img.coverType === 'screenshot')
+                                  || ep.images.find((img: any) => img.coverType === 'poster')
+                                  || ep.images.find((img: any) => img.coverType === 'banner')
+                                  || ep.images[0];
+                                if (img && (img.remoteUrl || img.url)) {
+                                  thumb = img.remoteUrl || img.url;
                                 }
                               }
-                              if (!thumb && ep.episodeFile && ep.episodeFile.coverImage) {
-                                thumb = ep.episodeFile.coverImage;
+                              // Fallback: use Sonarr series images (poster/banner)
+                              if (ep.seriesImages && Array.isArray(ep.seriesImages)) {
+                                const img = ep.seriesImages.find((img: any) => img.coverType === 'poster')
+                                  || ep.seriesImages.find((img: any) => img.coverType === 'banner')
+                                  || ep.seriesImages[0];
+                                if (img && (img.remoteUrl || img.url)) {
+                                  thumb = img.remoteUrl || img.url;
+                                  console.log('Sonarr series fallback image:', thumb, ep.title, img.coverType);
+                                }
                               }
-                              if (!thumb && ep.images && Array.isArray(ep.images) && ep.images.length > 0) {
-                                // Sonarr episode images (if present)
-                                const img = ep.images.find((img: any) => img.coverType === 'screenshot' || img.coverType === 'poster');
-                                if (img) thumb = img.url;
-                              }
-                              if (!thumb && ep.seriesImages && Array.isArray(ep.seriesImages) && ep.seriesImages.length > 0) {
-                                // Sonarr series images as last fallback
-                                const img = ep.seriesImages.find((img: any) => img.coverType === 'banner' || img.coverType === 'poster');
-                                if (img) thumb = img.url;
-                              }
+                              console.log('No thumbnail found for episode:', ep.title);
                               return (
                                 <div key={ep.id} className={`episode-row${ep.hasFile ? ' downloaded' : ''}`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                                   <div className="episode-thumb">
