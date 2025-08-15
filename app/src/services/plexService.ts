@@ -1,7 +1,7 @@
 export interface PlexMedia {
   id: number;
   title: string;
-  type: 'movie' | 'show';
+  type: 'movie' | 'show' | 'episode';
   year?: number;
   summary?: string;
   rating?: number;
@@ -15,6 +15,7 @@ export interface PlexMedia {
   viewCount?: number;
   lastViewedAt?: string;
   guid?: string;
+  raw?: any;
 }
 
 import type { PlexSeason } from '../types';
@@ -116,7 +117,7 @@ class PlexService {
       return {
         id: parseInt(item.ratingKey),
         title: item.title,
-        type: item.type as 'movie' | 'show',
+        type: item.type as 'movie' | 'show' | 'episode',
         year: item.year ? parseInt(item.year) : undefined,
         summary: item.summary,
         rating: item.rating ? parseFloat(item.rating) : undefined,
@@ -129,7 +130,8 @@ class PlexService {
         updatedAt: item.updatedAt ? new Date(parseInt(item.updatedAt) * 1000).toISOString() : undefined,
         viewCount: item.viewCount ? parseInt(item.viewCount) : 0,
         lastViewedAt: item.lastViewedAt ? new Date(parseInt(item.lastViewedAt) * 1000).toISOString() : undefined,
-        guid: item.guid || undefined
+        guid: item.guid || undefined,
+        raw: item
       };
     } catch (error) {
       console.error('Failed to fetch media details:', error);

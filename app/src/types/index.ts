@@ -25,6 +25,7 @@ export interface PlexMedia {
   guid?: string;
   tagline?: string;
   originallyAvailableAt?: string;
+  raw?: any;
 }
 
 export interface PlexLibrary {

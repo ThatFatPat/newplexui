@@ -299,10 +299,10 @@ const MediaDetails = () => {
           </div>
           <div className="hero-right">
             {media?.type === 'movie' && (
-              <button className="play-button">
+              <Link to={`/player/movie/${media.id}`} className="play-button">
                 <Play className="w-6 h-6" />
                 <span>Play</span>
-              </button>
+              </Link>
             )}
             <button className="add-button">
               <Plus className="w-5 h-5" />
@@ -469,9 +469,9 @@ const MediaDetails = () => {
                                       <div className="episode-title-actions">
                                         {ep.hasFile ? (
                                           <>
-                                            <button className="episode-play-btn" title="Play Episode">
+                                            <Link to={`/player/episode/${ep.id}`} className="episode-play-btn" title="Play Episode">
                                               <Play className="w-5 h-5" />
-                                            </button>
+                                            </Link>
                                             <span className="downloaded-label">Downloaded</span>
                                           </>
                                         ) : (

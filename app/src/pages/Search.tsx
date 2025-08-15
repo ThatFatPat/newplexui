@@ -75,15 +75,15 @@ const AddToServiceModal = ({ isOpen, onClose, item, onAdd }: AddToServiceModalPr
     return null;
   }, [config.radarr]);
 
-    const plexService = useMemo(() => {
-        if (config.plex?.token && config.plex?.host && config.plex?.port && config.plex?.scheme) {
-            return new PlexService({
-                url: `${config.plex.scheme}://${config.plex.host}:${config.plex.port}`,
-                token: config.plex.token
-            });
-        }
-        return null;
-    }, [config.plex]);
+  const plexService = useMemo(() => {
+    if (config.plex?.token && config.plex?.host && config.plex?.port && config.plex?.scheme) {
+      return new PlexService({
+        url: `${config.plex.scheme}://${config.plex.host}:${config.plex.port}`,
+        token: config.plex.token
+      });
+    }
+    return null;
+  }, [config.plex]);
 
   useEffect(() => {
     if (!isOpen || !item) return;
@@ -241,7 +241,8 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SearchResult | null>(null);
   const [showModal, setShowModal] = useState(false);
-    const [existingMedia, setExistingMedia] = useState<{[key: string]: boolean}>({});
+  // Store Plex ID if exists, else undefined
+  const [existingMedia, setExistingMedia] = useState<{ [key: string]: number | undefined }>({});
 
   const sonarrService = useMemo(() => {
     if (config.sonarr?.apiKey && config.sonarr?.host && config.sonarr?.port && config.sonarr?.scheme) {
@@ -263,238 +264,235 @@ const Search = () => {
     return null;
   }, [config.radarr]);
 
-    const plexService = useMemo(() => {
-        if (config.plex?.token && config.plex?.host && config.plex?.port && config.plex?.scheme) {
-            return new PlexService({
-                url: `${config.plex.scheme}://${config.plex.host}:${config.plex.port}`,
-                token: config.plex.token
-            });
-        }
-        return null;
-    }, [config.plex]);
+  const plexService = useMemo(() => {
+    if (config.plex?.token && config.plex?.host && config.plex?.port && config.plex?.scheme) {
+      return new PlexService({
+        url: `${config.plex.scheme}://${config.plex.host}:${config.plex.port}`,
+        token: config.plex.token
+      });
+    }
+    return null;
+  }, [config.plex]);
 
-    const searchMedia = useCallback(async (query: string) => {
-        if (!query.trim() || (!sonarrService && !radarrService)) return;
-        setLoading(true);
+  const searchMedia = useCallback(async (query: string) => {
+    if (!query.trim() || (!sonarrService && !radarrService)) return;
+    setLoading(true);
 
+    try {
+      let results: SearchResult[] = [];
+
+      if (radarrService) {
+        const movies = await radarrService.searchMovies(query);
+        movies.forEach((m: any) => {
+          results.push({
+            id: m.tmdbId || m.imdbId || m.titleSlug,
+            title: m.title,
+            type: 'movie',
+            year: m.year,
+            overview: m.overview,
+            posterPath: m.remotePoster,
+            releaseDate: m.inCinemas,
+            runtime: m.runtime,
+            genres: m.genres,
+            voteAverage: m.ratings?.value,
+            voteCount: m.ratings?.votes
+          });
+        });
+      }
+
+      if (sonarrService) {
+        const shows = await sonarrService.searchSeries(query);
+        shows.forEach((s: any) => {
+          results.push({
+            id: s.tvdbId || s.imdbId || s.titleSlug,
+            title: s.title,
+            type: 'show',
+            year: s.year,
+            overview: s.overview,
+            posterPath: s.remotePoster,
+            firstAirDate: s.firstAired,
+            episodeRunTime: s.runtime ? [s.runtime] : [],
+            numberOfSeasons: s.seasons?.length,
+            genres: s.genres,
+            status: s.status
+          });
+        });
+      }
+
+      // Relevance sorting
+      results = results.sort((a, b) => {
+        const queryLower = query.toLowerCase();
+        const aTitleLower = a.title.toLowerCase();
+        const bTitleLower = b.title.toLowerCase();
+
+        const aExactMatch = aTitleLower === queryLower;
+        const bExactMatch = bTitleLower === queryLower;
+
+        if (aExactMatch && !bExactMatch) return -1; // a is better
+        if (!aExactMatch && bExactMatch) return 1; // b is better
+
+        // Basic relevance using vote count, can be improved
+        const aRelevance = a.voteCount || 0;
+        const bRelevance = b.voteCount || 0;
+
+        return bRelevance - aRelevance;
+      });
+
+      // Check existing media
+      if (plexService) {
         try {
-            let results: SearchResult[] = [];
-
-            if (radarrService) {
-                const movies = await radarrService.searchMovies(query);
-                movies.forEach((m: any) => {
-                    results.push({
-                        id: m.tmdbId || m.imdbId || m.titleSlug,
-                        title: m.title,
-                        type: 'movie',
-                        year: m.year,
-                        overview: m.overview,
-                        posterPath: m.remotePoster,
-                        releaseDate: m.inCinemas,
-                        runtime: m.runtime,
-                        genres: m.genres,
-                        voteAverage: m.ratings?.value,
-                        voteCount: m.ratings?.votes
-                    });
-                });
-            }
-
-            if (sonarrService) {
-                const shows = await sonarrService.searchSeries(query);
-                shows.forEach((s: any) => {
-                    results.push({
-                        id: s.tvdbId || s.imdbId || s.titleSlug,
-                        title: s.title,
-                        type: 'show',
-                        year: s.year,
-                        overview: s.overview,
-                        posterPath: s.remotePoster,
-                        firstAirDate: s.firstAired,
-                        episodeRunTime: s.runtime ? [s.runtime] : [],
-                        numberOfSeasons: s.seasons?.length,
-                        genres: s.genres,
-                        status: s.status
-                    });
-                });
-            }
-
-            // Relevance sorting
-            results = results.sort((a, b) => {
-                const queryLower = query.toLowerCase();
-                const aTitleLower = a.title.toLowerCase();
-                const bTitleLower = b.title.toLowerCase();
-
-                const aExactMatch = aTitleLower === queryLower;
-                const bExactMatch = bTitleLower === queryLower;
-
-                if (aExactMatch && !bExactMatch) return -1; // a is better
-                if (!aExactMatch && bExactMatch) return 1; // b is better
-
-                // Basic relevance using vote count, can be improved
-                const aRelevance = a.voteCount || 0;
-                const bRelevance = b.voteCount || 0;
-
-                return bRelevance - aRelevance;
-            });
-
-             // Check existing media
-            if (plexService) {
-                try {
-                    const plexLibrary = await plexService.getLibrary();
-                    const existing = {};
-
-                    results.forEach(item => {
-                        const exists = plexLibrary.some(plexItem => plexItem.title === item.title && plexItem.type === item.type);
-                        existing[item.id] = exists;
-                    });
-
-                    setExistingMedia(existing);
-
-                } catch (error) {
-                    console.error('Error fetching Plex library:', error);
-                }
-            }
-
-            setSearchResults(results);
-
+          const plexLibrary = await plexService.getLibrary();
+          const existing: { [key: string]: number | undefined } = {};
+          results.forEach(item => {
+            const match = plexLibrary.find(plexItem => plexItem.title === item.title && plexItem.type === item.type);
+            existing[item.id] = match ? match.id : undefined;
+          });
+          setExistingMedia(existing);
         } catch (error) {
-            console.error('Search error:', error);
-            setSearchResults([]);
-        } finally {
-            setLoading(false);
+          console.error('Error fetching Plex library:', error);
         }
-    }, [sonarrService, radarrService, plexService]);
+      }
 
-    const handleSearch = useCallback((e: React.FormEvent) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            searchMedia(searchQuery);
-        }
-    }, [searchQuery, searchMedia]);
+      setSearchResults(results);
 
-    const handleAddToService = useCallback(async (options: any) => {
-        if (!selectedItem || !sonarrService || !radarrService) return;
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [sonarrService, radarrService, plexService]);
 
-        try {
-            if (selectedItem.type === 'show') {
-                const result = await sonarrService.addSeries({
-                    title: selectedItem.title,
-                    titleSlug: selectedItem.title.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-                    tvdbId: selectedItem.id,
-                    qualityProfileId: options.qualityProfileId,
-                    rootFolderPath: options.rootFolderPath,
-                    monitored: options.monitored,
-                    searchForMissingEpisodes: options.searchForMissingEpisodes,
-                    seasonFolder: options.seasonFolder,
-                    tags: options.tags
-                });
-                if (result) alert(`Successfully added ${selectedItem.title} to Sonarr!`);
-            } else if (selectedItem.type === 'movie') {
-                const result = await radarrService.addMovie({
-                    title: selectedItem.title,
-                    titleSlug: selectedItem.title.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-                    tmdbId: selectedItem.id,
-                    qualityProfileId: options.qualityProfileId,
-                    rootFolderPath: options.rootFolderPath,
-                    monitored: options.monitored,
-                    tags: options.tags
-                });
-                if (result) alert(`Successfully added ${selectedItem.title} to Radarr!`);
-            }
-        } catch (error) {
-            console.error(`Error adding to ${selectedItem.type === 'show' ? 'Sonarr' : 'Radarr'}:`, error);
-            alert(`Failed to add ${selectedItem.title}. Check configuration.`);
-        }
-    }, [selectedItem, sonarrService, radarrService]);
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      searchMedia(searchQuery);
+    }
+  }, [searchQuery, searchMedia]);
 
-    const openAddModal = useCallback((item: SearchResult) => {
-        setSelectedItem(item);
-        setShowModal(true);
-    }, []);
+  const handleAddToService = useCallback(async (options: any) => {
+    if (!selectedItem || !sonarrService || !radarrService) return;
 
-    return (
-        <div className="search-page">
-            <div className="search-header">
-                <h1>Search Media</h1>
-                <p>Find movies and TV shows to add to your collection</p>
-            </div>
+    try {
+      if (selectedItem.type === 'show') {
+        const result = await sonarrService.addSeries({
+          title: selectedItem.title,
+          titleSlug: selectedItem.title.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+          tvdbId: selectedItem.id,
+          qualityProfileId: options.qualityProfileId,
+          rootFolderPath: options.rootFolderPath,
+          monitored: options.monitored,
+          searchForMissingEpisodes: options.searchForMissingEpisodes,
+          seasonFolder: options.seasonFolder,
+          tags: options.tags
+        });
+        if (result) alert(`Successfully added ${selectedItem.title} to Sonarr!`);
+      } else if (selectedItem.type === 'movie') {
+        const result = await radarrService.addMovie({
+          title: selectedItem.title,
+          titleSlug: selectedItem.title.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+          tmdbId: selectedItem.id,
+          qualityProfileId: options.qualityProfileId,
+          rootFolderPath: options.rootFolderPath,
+          monitored: options.monitored,
+          tags: options.tags
+        });
+        if (result) alert(`Successfully added ${selectedItem.title} to Radarr!`);
+      }
+    } catch (error) {
+      console.error(`Error adding to ${selectedItem.type === 'show' ? 'Sonarr' : 'Radarr'}:`, error);
+      alert(`Failed to add ${selectedItem.title}. Check configuration.`);
+    }
+  }, [selectedItem, sonarrService, radarrService]);
 
-            <form onSubmit={handleSearch} className="search-form">
-                <div className="search-input-container">
-                    <SearchIcon className="search-icon" />
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search for movies or TV shows..."
-                        className="search-input"
-                        required
-                    />
-                    <button type="submit" className="search-button" disabled={loading}>
-                        {loading ? 'Searching...' : 'Search'}
-                    </button>
-                </div>
-            </form>
+  const openAddModal = useCallback((item: SearchResult) => {
+    setSelectedItem(item);
+    setShowModal(true);
+  }, []);
 
-            {loading && <div className="loading"><div className="spinner"></div><p>Searching...</p></div>}
+  return (
+    <div className="search-page">
+      <div className="search-header">
+        <h1>Search Media</h1>
+        <p>Find movies and TV shows to add to your collection</p>
+      </div>
 
-            {searchResults.length > 0 && (
-                <div className="search-results">
-                    <h2>Results ({searchResults.length})</h2>
-                    <div className="results-grid">
-                        {searchResults.map((item) => (
-                            <div key={`${item.type}-${item.id}`} className="result-card">
-                                <div className="card-image">
-                                    {item.posterPath ? (
-                                        <img src={item.posterPath} alt={item.title} />
-                                    ) : (
-                                        <div className="placeholder-image">
-                                            {item.type === 'movie' ? <Film className="w-12 h-12" /> : <Tv className="w-12 h-12" />}
-                                        </div>
-                                    )}
-                                    <div className="card-overlay">
-                                        {existingMedia[item.id] ? (
-                                            <a href={`/media/${item.type}/${item.id}`} className="view-button">
-                                                <Star className="w-5 h-5" />
-                                                View in Library
-                                            </a>
-                                        ) : (
-                                            <button onClick={() => openAddModal(item)} className="add-button">
-                                                <Plus className="w-5 h-5" />
-                                                Add to {item.type === 'movie' ? 'Radarr' : 'Sonarr'}
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="card-content">
-                                    <div className="card-header">
-                                        <h3 className="card-title">{item.title}</h3>
-                                    </div>
-                                    <div className="card-meta">
-                                        {item.year && <span className="year">{item.year}</span>}
-                                        {item.voteAverage && (
-                                            <div className="rating">
-                                                <Star className="w-4 h-4 fill-current" />
-                                                <span>{item.voteAverage.toFixed(1)}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {item.overview && <p className="overview">{item.overview}</p>}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            <AddToServiceModal
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                item={selectedItem}
-                onAdd={handleAddToService}
-            />
+      <form onSubmit={handleSearch} className="search-form">
+        <div className="search-input-container">
+          <SearchIcon className="search-icon" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search for movies or TV shows..."
+            className="search-input"
+            required
+          />
+          <button type="submit" className="search-button" disabled={loading}>
+            {loading ? 'Searching...' : 'Search'}
+          </button>
         </div>
-    );
+      </form>
+
+      {loading && <div className="loading"><div className="spinner"></div><p>Searching...</p></div>}
+
+      {searchResults.length > 0 && (
+        <div className="search-results">
+          <h2>Results ({searchResults.length})</h2>
+          <div className="results-grid">
+            {searchResults.map((item) => (
+              <div key={`${item.type}-${item.id}`} className="result-card">
+                <div className="card-image">
+                  {item.posterPath ? (
+                    <img src={item.posterPath} alt={item.title} />
+                  ) : (
+                    <div className="placeholder-image">
+                      {item.type === 'movie' ? <Film className="w-12 h-12" /> : <Tv className="w-12 h-12" />}
+                    </div>
+                  )}
+                  <div className="card-overlay">
+                    {existingMedia[item.id] ? (
+                      <a href={`/media/${item.type}/${existingMedia[item.id]}`} className="view-button">
+                        <Star className="w-5 h-5" />
+                        View in Library
+                      </a>
+                    ) : (
+                      <button onClick={() => openAddModal(item)} className="add-button">
+                        <Plus className="w-5 h-5" />
+                        Add to {item.type === 'movie' ? 'Radarr' : 'Sonarr'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="card-content">
+                  <div className="card-header">
+                    <h3 className="card-title">{item.title}</h3>
+                  </div>
+                  <div className="card-meta">
+                    {item.year && <span className="year">{item.year}</span>}
+                    {item.voteAverage && (
+                      <div className="rating">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span>{item.voteAverage.toFixed(1)}</span>
+                      </div>
+                    )}
+                  </div>
+                  {item.overview && <p className="overview">{item.overview}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <AddToServiceModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        item={selectedItem}
+        onAdd={handleAddToService}
+      />
+    </div>
+  );
 };
 
 export default Search;
